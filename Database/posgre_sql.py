@@ -108,9 +108,9 @@ class StepTable(DatabasePSQL):
         super().__init__()
         self.table_name = 'step_table'
         self.fields_with_parameters = "user_id INTEGER," \
-                                      "step_number INTEGER," \
+                                      "step_id INTEGER," \
                                       "style_id INTEGER"
-        self.fields = 'user_id, step_number, style_id'
+        self.fields = 'user_id, step_id, style_id'
         self.split_fields = self.fields.split(', ')
 
 
@@ -132,21 +132,20 @@ class DialogsTable(DatabasePSQL, ConfigDatabase):
         self.fields_with_parameters = "step_id INTEGER, " \
                                       "style_id INTEGER, " \
                                       "dialog varchar(255)," \
-                                      "next_step INTEGER," \
-                                      "next_style INTEGER"
-        self.fields = 'step_id, style_id, dialog, next_step, next_style'
+                                      "commands varchar(50)"
+        self.fields = 'step_id, style_id, dialog, commands'
         self.split_fields = self.fields.split(', ')
 
 if __name__ == '__main__':
     db = DialogsTable()
-    # db.drop_table(db.table_name)
-    # db.create_table(db.table_name, db.fields_with_parameters)
+    db.drop_table(db.table_name)
+    db.create_table(db.table_name, db.fields_with_parameters)
     # db.insert_data_in_table(db.table_name, db.fields, (0, 1, 'Стандартный'))
     # data = db.select_in_table(db.table_name, db.fields)
     # print(data)
     # db.update_fields(db.table_name, 'step_number = 1', 'user_id = 131312')
     # db.delete_data_from_table(db.table_name, 'step_id=0')
-    start = StepTable()
-    start.update_fields(start.table_name,
-                        f'{start.split_fields[1]} = 0, {start.split_fields[2]} = 0',
-                        f'{start.split_fields[0]}=1953960185')
+    # start = StepTable()
+    # start.update_fields(start.table_name,
+    #                     f'{start.split_fields[1]} = 0, {start.split_fields[2]} = 0',
+    #                     f'{start.split_fields[0]}=1953960185')
