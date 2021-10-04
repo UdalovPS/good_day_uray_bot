@@ -100,7 +100,7 @@ class DatabasePSQL():
                 f"""UPDATE {table_name} SET {fields_value}
                     WHERE {conditions};"""
             )
-            print(f'[INFO] Data <{fields_value}> from <{table_name}> was updated ')
+            print(f'[INFO] Data <{fields_value}> from <{table_name}> where <{conditions}> was updated ')
 
 
 class StepTable(DatabasePSQL):
@@ -108,8 +108,9 @@ class StepTable(DatabasePSQL):
         super().__init__()
         self.table_name = 'step_table'
         self.fields_with_parameters = "user_id INTEGER," \
-                                      "step_number INTEGER"
-        self.fields = 'user_id, step_number'
+                                      "step_number INTEGER," \
+                                      "style_id INTEGER"
+        self.fields = 'user_id, step_number, style_id'
         self.split_fields = self.fields.split(', ')
 
 
@@ -130,15 +131,22 @@ class DialogsTable(DatabasePSQL, ConfigDatabase):
         self.table_name = 'dialogs_table'
         self.fields_with_parameters = "step_id INTEGER, " \
                                       "style_id INTEGER, " \
-                                      "dialog varchar(255)"
-        self.fields = 'step_id, style_id, dialog'
+                                      "dialog varchar(255)," \
+                                      "next_step INTEGER," \
+                                      "next_style INTEGER"
+        self.fields = 'step_id, style_id, dialog, next_step, next_style'
         self.split_fields = self.fields.split(', ')
 
 if __name__ == '__main__':
     db = DialogsTable()
+    # db.drop_table(db.table_name)
     # db.create_table(db.table_name, db.fields_with_parameters)
     # db.insert_data_in_table(db.table_name, db.fields, (0, 1, 'Стандартный'))
     # data = db.select_in_table(db.table_name, db.fields)
     # print(data)
     # db.update_fields(db.table_name, 'step_number = 1', 'user_id = 131312')
     # db.delete_data_from_table(db.table_name, 'step_id=0')
+    start = StepTable()
+    start.update_fields(start.table_name,
+                        f'{start.split_fields[1]} = 0, {start.split_fields[2]} = 0',
+                        f'{start.split_fields[0]}=1953960185')
