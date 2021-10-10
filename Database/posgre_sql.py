@@ -107,8 +107,8 @@ class StepTable(DatabasePSQL):
     def __init__(self):
         super().__init__()
         self.table_name = 'step_table'
-        self.fields_with_parameters = "user_id INTEGER," \
-                                      "step_id INTEGER," \
+        self.fields_with_parameters = "user_id  INTEGER," \
+                                      "step_id  INTEGER," \
                                       "style_id INTEGER"
         self.fields = 'user_id, step_id, style_id'
         self.split_fields = self.fields.split(', ')
@@ -118,10 +118,11 @@ class QuestionsTable(DatabasePSQL):
     def __init__(self):
         super().__init__()
         self.table_name = 'questions_table'
-        self.fields_with_parameters = 'step_id INTEGER,' \
-                                      'style_id INTEGER,' \
-                                      'question varchar(255)'
-        self.fields = 'step_id, style_id, question'
+        self.fields_with_parameters = 'step_id      INTEGER,' \
+                                      'style_id     INTEGER,' \
+                                      'question     varchar(255),' \
+                                      'pre_question INTEGER'
+        self.fields = 'step_id, style_id, question, pre_question'
         self.split_fields = self.fields.split(', ')
 
 
@@ -129,15 +130,15 @@ class DialogsTable(DatabasePSQL, ConfigDatabase):
     def __init__(self):
         super().__init__()
         self.table_name = 'dialogs_table'
-        self.fields_with_parameters = "step_id INTEGER, " \
-                                      "style_id INTEGER, " \
-                                      "dialog varchar(255)," \
-                                      "commands varchar(50)"
+        self.fields_with_parameters = "step_id      INTEGER, " \
+                                      "style_id     INTEGER, " \
+                                      "dialog       varchar(255)," \
+                                      "commands     varchar(50)"
         self.fields = 'step_id, style_id, dialog, commands'
         self.split_fields = self.fields.split(', ')
 
 if __name__ == '__main__':
-    db = DialogsTable()
+    db = QuestionsTable()
     db.drop_table(db.table_name)
     db.create_table(db.table_name, db.fields_with_parameters)
     # db.insert_data_in_table(db.table_name, db.fields, (0, 1, 'Стандартный'))

@@ -1,59 +1,120 @@
-import config
-import telebot
 import logging
-from Database import sql_handler
-from telebot import types
+from aiogram import Bot, Dispatcher, executor, types
 
-bot = telebot.TeleBot(config.API_TOKEN)
-path_db = "Database/db.db"
+from config import ConfigTelebot
+from Database.posgre_sql import StepTable, QuestionsTable, DialogsTable
+from command_handler import CommandHandler
 
+bot = Bot(token=ConfigTelebot().api_token, parse_mode=types.ParseMode.HTML)
+dp = Dispatcher(bot)
+logging.basicConfig(level=logging.INFO)
 
-@bot.message_handler(commands=['start'])
-def start_message(message):
-    print(message.chat.id)
-    # markup = types.InlineKeyboardMarkup(row_width=len(btn))
-    # for i in btn:
-    #     item = types.InlineKeyboardButton(i[1], callback_data=i[0])
-    #     markup.add(item)
-    bot.send_message(message.chat.id, 'bot start')
-
-@bot.message_handler(content_types=['text'])
-def start_message(message):
-    print(message.chat.id)
-    step_id = db.check_step_id_db(message.chat.id)
-    if not step_id:
-        step_id = 0
-        db.step_user_table.insert_in_table(db.step_user_table.table_name,
-                                           db.step_user_table.fields,
-                                           (int(message.chat.id), step_id))
-    else:
-        step_id = step_id[0]
-    bot.send_message(message.chat.id, 'Здарова Игорыч!')
-
-@bot.callback_query_handler(func=lambda call: True)
-def next_step(call):
-    try:
-        if call.message:
-            # print(call.data)
-            # print(type(call.data))
-            bot.send_message(call.message.chat.id, call.data)
-    except Exception as e:
-        print(repr(e))
-
-
-
-class WorkWIthDB():
+class MyBot():
     def __init__(self):
-        self.step_user_table = sql_handler.StepUserTable(path_db)
-        self.dialog_table = sql_handler.DialogsTable(path_db)
-        self.question_table = sql_handler.QuestionTable(path_db)
+        self.steps = StepTable()
+        self.questions = QuestionsTable()
+        self.dialogs = DialogsTable()
 
-    def check_step_id_db(self, chat_id):
-        cond = 'user_id = {0}'.format(chat_id)
-        data = self.step_user_table.select_in_table(self.step_user_table.table_name, 'step', cond)
+    @dp.message_handler(commands='status')
+    async def status_message(message: types.Message):
+        await message.answer('Bot is working')
+
+    @dp.message_handler(commands='start')
+    async def start_dialog(message: types.Message):
+        CommandHandler('20000,', message.chat.id)           #20000 is cod to delete command
+        CommandHandler('30000,', message.chat.id)           #30000 is cod to insert new row in step_table SQL
+        data = SelectorDataDb(message.chat.id)
+        keyboard = types.InlineKeyboardMarkup()
+        for dialog in data.dialogs:
+            keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]))
+
+        await message.answer(data.quest, reply_markup=keyboard)
+
+    @dp.callback_query_handler(text='back')
+    async def back_command(call: types.CallbackQuery):
+        CommandHandler('50000,', call.message.chat.id)
+        data = SelectorDataDb(call.message.chat.id)
+        keyboard = types.InlineKeyboardMarkup()
+        for dialog in data.dialogs:
+            keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]))
+        if not data.style_id == 0:
+            keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
+
+        await call.message.answer(data.quest, reply_markup=keyboard)
+        await bot.delete_message(call.message.chat.id, call.message.message_id)
+
+    @dp.callback_query_handler()
+    async def enter_button_command(call: types.CallbackQuery):
+        pre_data = SelectorDataDb(call.message.chat.id)
+        pre_answer = pre_data.select_pre_step_dialog(pre_data.step_id,
+                                                        pre_data.style_id,
+                                                     call.data
+                                                     )
+        CommandHandler(call.data, call.message.chat.id)
+        data = SelectorDataDb(call.message.chat.id)
+        keyboard = types.InlineKeyboardMarkup()
+        for dialog in data.dialogs:
+            keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]))
+        keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
+
+        await call.message.answer(data.quest, reply_markup=keyboard)
+        await bot.edit_message_text(f'{pre_data.quest}\n<u>{pre_answer}</u>', call.message.chat.id,
+                                    call.message.message_id, reply_markup='')
+
+
+class SelectorDataDb():
+    def __init__(self, user_id):
+        self.user_id = user_id
+        self.steps = StepTable()
+        self.questions = QuestionsTable()
+        self.dia = DialogsTable()
+
+        self.step_id = self.select_step_number_from_db(self.user_id)
+        self.style_id = self.select_style_id_from_db(self.user_id)
+        self.quest = self.select_question_from_db(self.step_id, self.style_id)
+        self.dialogs = self.select_dialog_from_db(self.step_id, self.style_id)
+
+    def select_step_number_from_db(self, chat_id):
+        conditions = f'{self.steps.split_fields[0]}={chat_id}'
+        step_number = self.steps.select_in_table(self.steps.table_name,
+                                                 self.steps.split_fields[1],
+                                                 conditions
+                                                 )
+        return step_number[0][0]
+
+    def select_style_id_from_db(self, chat_id):
+        conditions = f'{self.steps.split_fields[0]}={chat_id}'
+        style_id = self.steps.select_in_table(self.steps.table_name,
+                                              self.steps.split_fields[2],
+                                              conditions)
+        return style_id[0][0]
+
+    def select_question_from_db(self, step_number, style_id):
+        conditions = f'{self.questions.split_fields[0]}={step_number}' \
+                     f'AND {self.questions.split_fields[1]}={style_id}'
+        data = self.questions.select_in_table(self.questions.table_name,
+                                              self.questions.split_fields[2],
+                                              conditions)
+        return data[0][0]
+
+    def select_dialog_from_db(self, step_number, style_id):
+        conditions = f'{self.dia.split_fields[0]}={step_number}' \
+                     f'AND {self.dia.split_fields[1]}={style_id}'
+        data = self.dia.select_in_table(self.dia.table_name,
+                                        f'{self.dia.split_fields[2]}, '
+                                        f'{self.dia.split_fields[3]}',
+                                        conditions)
         return data
 
+    def select_pre_step_dialog(self, step_number, style_id, command):
+        conditions = f"{self.dia.split_fields[0]}={step_number} "\
+                     f"AND {self.dia.split_fields[1]}={style_id} "\
+                     f"AND {self.dia.split_fields[3]}='{command}'"
+        data = self.dia.select_in_table(self.dia.table_name,
+                                        f'{self.dia.split_fields[2]}',
+                                        conditions)
+        return data[0][0]
+
 if __name__ == '__main__':
-    # db = sql_handler.SQLHandler(path_db).create_sub_tables()
-    db = WorkWIthDB()
-    bot.polling(none_stop=True)
+    cl = MyBot()
+    executor.start_polling(dp, skip_updates=True)

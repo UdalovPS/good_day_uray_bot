@@ -5,10 +5,10 @@ class DialogTree():
         self.questions = QuestionsTable()
         self.dialogs = DialogsTable()
 
-    def insert_question(self, step_number, style_id, question):
+    def insert_question(self, step_number, style_id, question, pre_question):
         self.questions.insert_data_in_table(self.questions.table_name,
                                             self.questions.fields,
-                                            f'{step_number, style_id, question}')
+                                            f'{step_number, style_id, question, pre_question}')
 
     def insert_dialog(self, step, style, dialog):
         self.dialogs.insert_data_in_table(self.dialogs.table_name,
@@ -41,21 +41,21 @@ class FirstStep(DialogTree):
 class Dialogs(DialogTree):
     def __init__(self):
         super(Dialogs, self).__init__()
-        self.style = (0, 0, 'В каком стиле будем вести диалог?',
+        self.style = (0, 0, 'В каком стиле будем вести диалог?', 0,
                       (('В стандартном', '10001,'), ('Как БРО!', '10002.')))
 
-        self.step_zero_1 = (0, 1, 'Что хотите заказать?',
+        self.step_zero_1 = (0, 1, 'Что хотите заказать?', 0,
                           (('Шаурму', '40001,'),)
                           )
-        self.step_zero_2 = (0, 2, 'Что будешь хавать?',
+        self.step_zero_2 = (0, 2, 'Что будешь хавать?', 0,
                           (('Шаурму', '40001,'),)
                           )
 
 if __name__ == '__main__':
-    s0 = Dialogs()
-    data = s0.step_zero_2
-    s0.insert_question(data[0], data[1], data[2])
-    for dialog in data[3]:
-        s0.insert_dialog(data[0], data[1], dialog)
+    # s0 = Dialogs()
+    # data = s0.style
+    # s0.insert_question(data[0], data[1], data[2], data[3])
+    # for dialog in data[3]:
+    #     s0.insert_dialog(data[0], data[1], dialog)
 
     pass
