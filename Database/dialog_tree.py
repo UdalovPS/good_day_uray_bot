@@ -1,9 +1,10 @@
-from posgre_sql import QuestionsTable, DialogsTable
+from posgre_sql import QuestionsTable, DialogsTable, EmojiTable
 
 class DialogTree():
     def __init__(self):
         self.questions = QuestionsTable()
         self.dialogs = DialogsTable()
+        self.emj = EmojiTable()
 
     def insert_question(self, step_number, style_id, question, pre_question):
         self.questions.insert_data_in_table(self.questions.table_name,
@@ -16,6 +17,10 @@ class DialogTree():
                                           f"({step}, {style}, '{dialog[0]}', "
                                           f"'{dialog[1]}')")
 
+    def insert_emoji(self, step, style, emoji):
+        self.emj.insert_data_in_table(self.emj.table_name,
+                                      self.emj.fields,
+                                      f"({step}, {style}, '{emoji}')")
 
 class ZeroStepStyle(DialogTree):
     def __init__(self):
@@ -42,20 +47,22 @@ class Dialogs(DialogTree):
     def __init__(self):
         super(Dialogs, self).__init__()
         self.style = (0, 0, 'В каком стиле будем вести диалог?', 0,
-                      (('В стандартном', '10001,'), ('Как БРО!', '10002.')))
+                      (('В стандартном', '10001,'), ('Как БРО!', '10002,')))
 
         self.step_zero_1 = (0, 1, 'Что хотите заказать?', 0,
-                          (('Шаурму', '40001,'),)
+                          (('Шаурму', '40001,', ':burrito:'),)
                           )
         self.step_zero_2 = (0, 2, 'Что будешь хавать?', 0,
-                          (('Шаурму', '40001,'),)
+                          (('Шаурму', '40001,', ':burrito:'),)
                           )
 
 if __name__ == '__main__':
-    # s0 = Dialogs()
-    # data = s0.style
+    s0 = Dialogs()
+    data = s0.step_zero_2
     # s0.insert_question(data[0], data[1], data[2], data[3])
-    # for dialog in data[3]:
+    # for dialog in data[4]:
     #     s0.insert_dialog(data[0], data[1], dialog)
+    #     if len(dialog) > 2:
+    #         s0.insert_emoji(data[0], data[1], dialog[2])
 
     pass

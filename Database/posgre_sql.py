@@ -55,7 +55,7 @@ class DatabasePSQL():
         @self.decorate_open_commit_close(table_name)
         def func(cursor, table_name):
             cursor.execute(
-                f"""DROP TABLE {table_name};"""
+                f"""DROP TABLE IF EXISTS {table_name};"""
             )
             print(f'[INFO] Table <{table_name}> was deleted')
 
@@ -137,8 +137,18 @@ class DialogsTable(DatabasePSQL, ConfigDatabase):
         self.fields = 'step_id, style_id, dialog, commands'
         self.split_fields = self.fields.split(', ')
 
+class EmojiTable(DatabasePSQL):
+    def __init__(self):
+        super().__init__()
+        self.table_name = 'emoji_table'
+        self.fields_with_parameters = "step_id  INTEGER," \
+                                      "style_id INTEGER," \
+                                      "emoji    varchar(30)"
+        self.fields = 'step_id, style_id, emoji'
+        self.split_fields = self.fields.split(', ')
+
 if __name__ == '__main__':
-    db = QuestionsTable()
+    db = DialogsTable()
     db.drop_table(db.table_name)
     db.create_table(db.table_name, db.fields_with_parameters)
     # db.insert_data_in_table(db.table_name, db.fields, (0, 1, 'Стандартный'))

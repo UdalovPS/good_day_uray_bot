@@ -1,8 +1,9 @@
 import logging
+from emoji import emojize
 from aiogram import Bot, Dispatcher, executor, types
 
 from config import ConfigTelebot
-from Database.posgre_sql import StepTable, QuestionsTable, DialogsTable
+from Database.posgre_sql import StepTable, QuestionsTable, DialogsTable, EmojiTable
 from command_handler import CommandHandler
 
 bot = Bot(token=ConfigTelebot().api_token, parse_mode=types.ParseMode.HTML)
@@ -17,7 +18,7 @@ class MyBot():
 
     @dp.message_handler(commands='status')
     async def status_message(message: types.Message):
-        await message.answer('Bot is working')
+        await message.answer('Bot is working' + emojize(":white_check_mark:"))
 
     @dp.message_handler(commands='start')
     async def start_dialog(message: types.Message):
@@ -26,8 +27,11 @@ class MyBot():
         data = SelectorDataDb(message.chat.id)
         keyboard = types.InlineKeyboardMarkup()
         for dialog in data.dialogs:
-            keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]))
-
+            if data.emoji:
+                keyboard.add(types.InlineKeyboardButton(text=(dialog[0] + emojize(data.emoji)),
+                                                        callback_data=dialog[1]))
+            else:
+                keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]))
         await message.answer(data.quest, reply_markup=keyboard)
 
     @dp.callback_query_handler(text='back')
@@ -36,7 +40,11 @@ class MyBot():
         data = SelectorDataDb(call.message.chat.id)
         keyboard = types.InlineKeyboardMarkup()
         for dialog in data.dialogs:
-            keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]))
+            if data.emoji:
+                keyboard.add(types.InlineKeyboardButton(text=(dialog[0] + emojize(data.emoji)),
+                                                        callback_data=dialog[1]))
+            else:
+                keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]))
         if not data.style_id == 0:
             keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
 
@@ -54,7 +62,11 @@ class MyBot():
         data = SelectorDataDb(call.message.chat.id)
         keyboard = types.InlineKeyboardMarkup()
         for dialog in data.dialogs:
-            keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]))
+            if data.emoji:
+                keyboard.add(types.InlineKeyboardButton(text=(dialog[0] + emojize(data.emoji)),
+                                                        callback_data=dialog[1]))
+            else:
+                keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]))
         keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
 
         await call.message.answer(data.quest, reply_markup=keyboard)
@@ -68,11 +80,13 @@ class SelectorDataDb():
         self.steps = StepTable()
         self.questions = QuestionsTable()
         self.dia = DialogsTable()
+        self.emj = EmojiTable()
 
         self.step_id = self.select_step_number_from_db(self.user_id)
         self.style_id = self.select_style_id_from_db(self.user_id)
         self.quest = self.select_question_from_db(self.step_id, self.style_id)
         self.dialogs = self.select_dialog_from_db(self.step_id, self.style_id)
+        self.emoji = self.select_emoji_for_dialog(self.step_id, self.style_id)
 
     def select_step_number_from_db(self, chat_id):
         conditions = f'{self.steps.split_fields[0]}={chat_id}'
@@ -114,6 +128,18 @@ class SelectorDataDb():
                                         f'{self.dia.split_fields[2]}',
                                         conditions)
         return data[0][0]
+
+    def select_emoji_for_dialog(self, step_number, style_id):
+        conditions = f"{self.emj.split_fields[0]}={step_number}" \
+                     f"AND {self.emj.split_fields[1]}={style_id}"
+        data = self.emj.select_in_table(self.emj.table_name,
+                                        f'{self.emj.split_fields[2]}',
+                                        conditions)
+        print(data)
+        if data:
+            return data[0][0]
+        else:
+            return None
 
 if __name__ == '__main__':
     cl = MyBot()
