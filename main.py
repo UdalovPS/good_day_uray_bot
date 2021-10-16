@@ -18,12 +18,13 @@ class MyBot():
 
     @dp.message_handler(commands='status')
     async def status_message(message: types.Message):
-        await message.answer('Bot is working' + emojize(":white_check_mark:"))
+        await message.answer('Bot is working' + emojize(":pizza:"))
 
     @dp.message_handler(commands='start')
     async def start_dialog(message: types.Message):
-        CommandHandler('20000,', message.chat.id)           #20000 is cod to delete command
-        CommandHandler('30000,', message.chat.id)           #30000 is cod to insert new row in step_table SQL
+        CommandHandler('20000, 30000, 60000', message.chat.id)           #20000 is cod to delete command
+        # CommandHandler('30000,', message.chat.id)           #30000 is cod to insert new row in step_table SQL
+
         data = SelectorDataDb(message.chat.id)
         keyboard = types.InlineKeyboardMarkup()
         for dialog in data.dialogs:
@@ -54,8 +55,7 @@ class MyBot():
     @dp.callback_query_handler()
     async def enter_button_command(call: types.CallbackQuery):
         pre_data = SelectorDataDb(call.message.chat.id)
-        pre_answer = pre_data.select_pre_step_dialog(pre_data.step_id,
-                                                        pre_data.style_id,
+        pre_answer = pre_data.select_pre_step_dialog(pre_data.step_id, pre_data.style_id,
                                                      call.data
                                                      )
         CommandHandler(call.data, call.message.chat.id)

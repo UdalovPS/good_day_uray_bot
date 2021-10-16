@@ -137,6 +137,7 @@ class DialogsTable(DatabasePSQL, ConfigDatabase):
         self.fields = 'step_id, style_id, dialog, commands'
         self.split_fields = self.fields.split(', ')
 
+
 class EmojiTable(DatabasePSQL):
     def __init__(self):
         super().__init__()
@@ -147,8 +148,88 @@ class EmojiTable(DatabasePSQL):
         self.fields = 'step_id, style_id, emoji'
         self.split_fields = self.fields.split(', ')
 
+
+class Cart(DatabasePSQL):
+    def __init__(self):
+        super(Cart, self).__init__()
+        self.table_name = 'cart_table'
+        self.fields_with_parameters = "id           SERIAL PRIMARY KEY," \
+                                      "user_id      INTEGER," \
+                                      "status       INTEGER"
+        self.fields = 'id, user_id, status'
+        self.split_fields = self.fields.split(', ')
+
+
+class Product(DatabasePSQL):
+    def __init__(self):
+        super(Product, self).__init__()
+        self.table_name = 'product_table'
+        self.fields_with_parameters = "id           SERIAL PRIMARY KEY," \
+                                      "name         varchar(30)," \
+                                      "description  TEXT," \
+                                      "price        INTEGER"
+        self.fields = 'id, name, description, price'
+        self.split_fields = self.fields.split(', ')
+
+
+class CartProduct(DatabasePSQL):
+    def __init__(self):
+        super(CartProduct, self).__init__()
+        self.table_name = 'cart_product_table'
+        self.fields_with_parameters = "cart_id      INTEGER references cart_table(id)," \
+                                      "product_id   INTEGER references product_table(id)," \
+                                      "description  TEXT," \
+                                      "wishes       varchar(255)"
+        self.fields = 'cart_id, product_id, description, wishes'
+        self.split_fields = self.fields.split(', ')
+
+
+class Customer(DatabasePSQL):
+    def __init__(self):
+        super(Customer, self).__init__()
+        self.table_name = 'customer_table'
+        self.fields_with_parameters = "id     INTEGER PRIMARY KEY," \
+                                      "name   varchar(50)," \
+                                      "phone  varchar(20)"
+        self.fields = 'id, name, phone'
+        self.split_fields = self.fields.split(', ')
+
+
+class DateTimePlace(DatabasePSQL):
+    def __init__(self):
+        super(DateTimePlace, self).__init__()
+        self.table_name = 'date_time_place_table'
+        self.fields_with_parameters = "cart_id  INTEGER references cart_table(id)," \
+                                      "date     DATE," \
+                                      "time     TIME," \
+                                      "mode     INTEGER," \
+                                      "address  varchar(255)"
+        self.fields = 'cart_id, date, time, mode, address'
+        self.split_fields = self.fields.split(', ')
+
+
+class Scores(DatabasePSQL):
+    def __init__(self):
+        super(Scores, self).__init__()
+        self.table_name = 'scores_table'
+        self.fields_with_parameters = "customer_id  INTEGER references customer_table(id)," \
+                                      "value        INTEGER," \
+                                      "percent      INTEGER"
+        self.fields = 'customer_id, value, percent'
+        self.split_fields = self.fields.split(', ')
+
+
+class TmpScores(DatabasePSQL):
+    def __init__(self):
+        super(TmpScores, self).__init__()
+        self.table_name = 'tmp_scores_table'
+        self.fields_with_parameters = "customer_id  INTEGER references customer_table(id)," \
+                                      "value        INTEGER"
+        self.fields = 'customer_id, value'
+        self.split_fields = self.fields.split(', ')
+
 if __name__ == '__main__':
-    db = DialogsTable()
+    db = TmpScores()
     db.drop_table(db.table_name)
     db.create_table(db.table_name, db.fields_with_parameters)
     # db.insert_data_in_table(db.table_name, db.fields, (0, 1, 'Стандартный'))

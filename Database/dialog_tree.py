@@ -46,6 +46,8 @@ class FirstStep(DialogTree):
 class Dialogs(DialogTree):
     def __init__(self):
         super(Dialogs, self).__init__()
+        """(step, style, question, previous step) 
+            (dialog, commands, emoji IF EXISTS)"""
         self.style = (0, 0, 'В каком стиле будем вести диалог?', 0,
                       (('В стандартном', '10001,'), ('Как БРО!', '10002,')))
 
@@ -55,10 +57,20 @@ class Dialogs(DialogTree):
         self.step_zero_2 = (0, 2, 'Что будешь хавать?', 0,
                           (('Шаурму', '40001,', ':burrito:'),)
                           )
+        self.step_one_1 = (1, 1, 'Какую шаурму желаете?', 0,
+                          (('Шаурма №1', '40002, 70001', ':one:'),
+                           ('Шаурма №2', '40002, 70002', ':two:'),
+                           ('Шаурма №3', '40002, 70003', ':three:'))
+                          )
+        self.step_one_2 = (1, 2, 'Харош!!! Вкуснее шаурмы ничего нет на свете. Какую тебе?', 0,
+                          (('Шаурма №1', '40002, 70001', ':one:'),
+                           ('Шаурма №2', '40002, 70002', ':two:'),
+                           ('Шаурма №3', '40002, 70003', ':three:'))
+                          )
 
 if __name__ == '__main__':
     s0 = Dialogs()
-    data = s0.step_zero_2
+    data = s0.step_one_2
     # s0.insert_question(data[0], data[1], data[2], data[3])
     # for dialog in data[4]:
     #     s0.insert_dialog(data[0], data[1], dialog)

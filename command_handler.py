@@ -1,4 +1,5 @@
 from Database.posgre_sql import StepTable, QuestionsTable, DialogsTable
+from Database.posgre_sql import Cart
 
 """
 Command handler algorithm:
@@ -7,6 +8,8 @@ Command handler algorithm:
     30 000 - insert style_id=0, step_id=0 in step_table;
     40 000 - change step in step_table;
     50 000 - back to previous step;
+    60 000 - insert new row in cart table;
+    70 000 - insert new row in cart product table;
 """
 
 class CommandHandler():
@@ -17,6 +20,7 @@ class CommandHandler():
         self.steps = StepTable()
         self.questions = QuestionsTable()
         self.dialogs = DialogsTable()
+        self.cart = Cart()
 
         self.command_parser()
 
@@ -37,6 +41,8 @@ class CommandHandler():
                     self.__change_step_id(value, self.chat_id)
                 if cod == 50:
                     self.__back_to_previous_step(self.chat_id)
+                if cod == 60:
+                    self.__insert_start_cart_data(self.chat_id)
 
     def __change_style_id(self, value, chat_id):
         field_value = f'{self.steps.split_fields[2]}={value}'
@@ -81,15 +87,26 @@ class CommandHandler():
 
     def __back_to_previous_step(self, chat_id):
         step_style_list = self.__select_step_style_now_message(chat_id)
+        print("BACK LIST")
         value = self.__select_pre_step_id(step_style_list[0][0], step_style_list[0][1])
-        if value == 0:
+        print("BACK VALUE:", value)
+        if step_style_list[0][0] == 0:
             field_value = f'{self.steps.split_fields[2]}={value}'
+            print("BACK STYLE: ", field_value)
         else:
             field_value = f'{self.steps.split_fields[1]}={value}'
+            print("BACK STEP: ", field_value)
         conditions = f'{self.steps.split_fields[0]}={chat_id}'
         self.steps.update_fields(self.steps.table_name, field_value,
                                  conditions
                                  )
+
+    def __insert_start_cart_data(self, chat_id):
+        self.cart.insert_data_in_table(self.cart.table_name,
+                                       f'{self.cart.split_fields[1]},'
+                                       f'{self.cart.split_fields[2]}',
+                                       f'({chat_id},0)'
+                                       )
 
 if __name__ == '__main__':
     a = CommandHandler(10001, 12)
