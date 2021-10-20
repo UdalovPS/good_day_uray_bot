@@ -1,99 +1,6 @@
-import logging
-from emoji import emojize
-from aiogram import Bot, Dispatcher, executor, types
-
-from config import ConfigTelebot
 from Database.posgre_sql import StepTable, QuestionsTable, DialogsTable
 from Database.posgre_sql import Customer, EmojiTable, Product, CartProduct
 from Database.posgre_sql import Cart
-from command_handler import CommandHandler
-
-bot = Bot(token=ConfigTelebot().api_token, parse_mode=types.ParseMode.HTML)
-dp = Dispatcher(bot)
-logging.basicConfig(level=logging.INFO)
-
-class MyBot():
-    def __init__(self):
-        self.steps = StepTable()
-        self.questions = QuestionsTable()
-        self.dialogs = DialogsTable()
-
-    @dp.message_handler(commands='status')
-    async def status_message(message: types.Message):
-        await message.answer('Bot is working' + emojize(":pizza:"))
-
-    @dp.message_handler(commands='start')
-    async def start_dialog(message: types.Message):
-        CommandHandler('20000, 30000', message.chat.id)
-        data = SelectorDataDb(message.chat.id)
-        if data.black_list_data:
-            if data.black_list_data == 2:
-                await message.answer("Извините, но вы находитесь в черном списке.\nЗа подробностями обратитесь по телефону")
-                return 0
-        else:
-            CommandHandler('80000,', message.chat.id)
-        CommandHandler('60000,', message.chat.id)
-        keyboard = types.InlineKeyboardMarkup()
-        for dialog in data.dialogs:
-            if data.emoji:
-                keyboard.add(types.InlineKeyboardButton(text=(dialog[0] + emojize(data.emoji)),
-                                                        callback_data=dialog[1]))
-            else:
-                keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]))
-        await message.answer(data.quest, reply_markup=keyboard)
-
-    @dp.message_handler(content_types='text')
-    async def count_product_message(message: types.Message):
-        data = SelectorDataDb(message.chat.id)
-        if data.step_id == 4:
-            try:
-                count = int(message.text)
-                if count > 999:
-                    await message.answer('Слишком большое число')
-                else:
-                    command = 72000 + count
-                    CommandHandler(f'40005, {str(command)}')
-            except ValueError:
-                await message.answer('Неверно введено число')
-
-    @dp.callback_query_handler(text='back')
-    async def back_command(call: types.CallbackQuery):
-        CommandHandler('50000,', call.message.chat.id)
-        data = SelectorDataDb(call.message.chat.id)
-        keyboard = types.InlineKeyboardMarkup()
-        for dialog in data.dialogs:
-            if dialog[2]:                                                                           #if emoji is exists
-                keyboard.add(types.InlineKeyboardButton(text=(dialog[0] + emojize(dialog[2])),
-                                                        callback_data=dialog[1]))
-            else:
-                keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]))
-        if not data.style_id == 0:
-            keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
-
-        await call.message.answer(data.quest, reply_markup=keyboard)
-        await bot.delete_message(call.message.chat.id, call.message.message_id)
-
-    @dp.callback_query_handler()
-    async def enter_button_command(call: types.CallbackQuery):
-        pre_data = SelectorDataDb(call.message.chat.id)
-        pre_answer = pre_data.select_pre_step_dialog(pre_data.step_id, pre_data.style_id,
-                                                     call.data
-                                                     )
-        CommandHandler(call.data, call.message.chat.id)
-        data = SelectorDataDb(call.message.chat.id)
-        keyboard = types.InlineKeyboardMarkup()
-        if data.dialogs:
-            for dialog in data.dialogs:
-                if dialog[2]:                                                                           #if emoji is exists
-                    keyboard.add(types.InlineKeyboardButton(text=(dialog[0] + emojize(dialog[2])),
-                                                            callback_data=dialog[1]))
-                else:
-                    keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]))
-            keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
-
-        await call.message.answer(data.quest, reply_markup=keyboard)
-        await bot.edit_message_text(f'{pre_data.quest}\n<u>{pre_answer}</u>', call.message.chat.id,
-                                    call.message.message_id, reply_markup='')
 
 
 class SelectorDataDb():
@@ -224,5 +131,4 @@ class SelectorDataDb():
         return data[0][0]
 
 if __name__ == '__main__':
-    cl = MyBot()
-    executor.start_polling(dp, skip_updates=True)
+    pass

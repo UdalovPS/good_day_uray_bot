@@ -133,8 +133,9 @@ class DialogsTable(DatabasePSQL, ConfigDatabase):
         self.fields_with_parameters = "step_id      INTEGER, " \
                                       "style_id     INTEGER, " \
                                       "dialog       varchar(255)," \
-                                      "commands     varchar(50)"
-        self.fields = 'step_id, style_id, dialog, commands'
+                                      "commands     varchar(50)," \
+                                      "emoji        varchar(30)"
+        self.fields = 'step_id, style_id, dialog, commands, emoji'
         self.split_fields = self.fields.split(', ')
 
 
@@ -171,16 +172,27 @@ class Product(DatabasePSQL):
         self.fields = 'id, name, description, price'
         self.split_fields = self.fields.split(', ')
 
+class Additional(DatabasePSQL):
+    def __init__(self):
+        super(Additional, self).__init__()
+        self.table_name = 'additional_table'
+        self.fields_with_parameters = "id           SERIAL PRIMARY KEY," \
+                                      "name         varchar(100)"
+        self.fields = 'id, name'
+        self.split_fields = self.fields.split(', ')
+
 
 class CartProduct(DatabasePSQL):
     def __init__(self):
         super(CartProduct, self).__init__()
         self.table_name = 'cart_product_table'
-        self.fields_with_parameters = "cart_id      INTEGER references cart_table(id)," \
-                                      "product_id   INTEGER references product_table(id)," \
-                                      "description  TEXT," \
-                                      "wishes       varchar(255)"
-        self.fields = 'cart_id, product_id, description, wishes'
+        self.fields_with_parameters = "cart_product_id  SERIAL PRIMARY KEY," \
+                                      "cart_id          INTEGER references cart_table(id)," \
+                                      "product_id       INTEGER references product_table(id)," \
+                                      "count            INTEGER," \
+                                      "wishes           varchar(255)," \
+                                      "status           INTEGER"
+        self.fields = 'cart_product_id, cart_id, product_id, count, wishes, status'
         self.split_fields = self.fields.split(', ')
 
 
@@ -188,10 +200,11 @@ class Customer(DatabasePSQL):
     def __init__(self):
         super(Customer, self).__init__()
         self.table_name = 'customer_table'
-        self.fields_with_parameters = "id     INTEGER PRIMARY KEY," \
-                                      "name   varchar(50)," \
-                                      "phone  varchar(20)"
-        self.fields = 'id, name, phone'
+        self.fields_with_parameters = "id           INTEGER PRIMARY KEY," \
+                                      "name         varchar(50)," \
+                                      "phone        varchar(20)," \
+                                      "black_list   INTEGER"
+        self.fields = 'id, name, phone, black_list'
         self.split_fields = self.fields.split(', ')
 
 
@@ -229,7 +242,7 @@ class TmpScores(DatabasePSQL):
         self.split_fields = self.fields.split(', ')
 
 if __name__ == '__main__':
-    db = TmpScores()
+    db = CartProduct()
     db.drop_table(db.table_name)
     db.create_table(db.table_name, db.fields_with_parameters)
     # db.insert_data_in_table(db.table_name, db.fields, (0, 1, 'Стандартный'))

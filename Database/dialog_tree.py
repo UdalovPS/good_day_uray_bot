@@ -13,14 +13,18 @@ class DialogTree():
 
     def insert_dialog(self, step, style, dialog):
         self.dialogs.insert_data_in_table(self.dialogs.table_name,
-                                          self.dialogs.fields,
+                                          f'{self.dialogs.split_fields[0]},'
+                                          f'{self.dialogs.split_fields[1]},'
+                                          f'{self.dialogs.split_fields[2]},'
+                                          f'{self.dialogs.split_fields[3]}',
                                           f"({step}, {style}, '{dialog[0]}', "
                                           f"'{dialog[1]}')")
 
-    def insert_emoji(self, step, style, emoji):
-        self.emj.insert_data_in_table(self.emj.table_name,
-                                      self.emj.fields,
-                                      f"({step}, {style}, '{emoji}')")
+    def insert_dialogs_with_emoji(self, step, style, dialog):
+        self.dialogs.insert_data_in_table(self.dialogs.table_name,
+                                      self.dialogs.fields,
+                                      f"({step}, {style}, '{dialog[0]}',"
+                                      f"'{dialog[1]}', '{dialog[2]}')")
 
 class ZeroStepStyle(DialogTree):
     def __init__(self):
@@ -60,21 +64,63 @@ class Dialogs(DialogTree):
         self.step_one_1 = (1, 1, 'Какую шаурму желаете?', 0,
                           (('Шаурма №1', '40002, 70001', ':one:'),
                            ('Шаурма №2', '40002, 70002', ':two:'),
-                           ('Шаурма №3', '40002, 70003', ':three:'))
+                           ('Шаурма №3', '40002, 70003', ':three:'),
+                           ('Шаурма №4', '40002, 70004', ':one:'),
+                           ('Шаурма №5/1', '40002, 70051', ':two:'),
+                           ('Шаурма №5/2', '40002, 70052', ':three:'),
+                           ('Шаурма №6 вегетерианская', '40002, 70006', ':three:'),
+                           ('Шаурма №7 с говядиной', '40002, 70007', ':one:'),
+                           ('Шаурма №8', '40002, 70008', ':two:'),
+                           ('Шаурма №9 три мяса', '40002, 70009', ':three:'))
                           )
         self.step_one_2 = (1, 2, 'Харош!!! Вкуснее шаурмы ничего нет на свете. Какую тебе?', 0,
                           (('Шаурма №1', '40002, 70001', ':one:'),
                            ('Шаурма №2', '40002, 70002', ':two:'),
-                           ('Шаурма №3', '40002, 70003', ':three:'))
+                           ('Шаурма №3', '40002, 70003', ':three:'),
+                           ('Шаурма №4', '40002, 70004', ':one:'),
+                           ('Шаурма №5/1', '40002, 70051', ':two:'),
+                           ('Шаурма №5/2', '40002, 70052', ':three:'),
+                           ('Шаурма №6 вегетерианская', '40002, 70006', ':three:'),
+                           ('Шаурма №7 с говядиной', '40002, 70007', ':one:'),
+                           ('Шаурма №8', '40002, 70008', ':two:'),
+                           ('Шаурма №9 три мяса', '40002, 70009', ':three:'))
                           )
+        self.step_two_1 = (2, 1, 'Состав: ', 1,
+                           (('Далее', '40003,'),)
+                           )
+        self.step_two_2 = (2, 2, 'Приготовлено из лучших продуктов, состав следующий: ', 1,
+                           (('Далее', '40003,'),)
+                           )
+        self.step_three_1 = (3, 1, 'Какой соус вам добавить?', 2,
+                             (('Чесночный', '40004, 71001'),
+                              ('Томатный', '40004, 71002'),
+                              ('Турецкий(острый)', '40004, 71003'),
+                              ('Кетчуп+майонез', '40004, 71004'))
+                             )
+        self.step_three_2 = (3, 2, 'Хороший выбор, уважаю. Осталось выбрать соус?', 2,
+                             (('Чесночный-антивампирный', '40004, 71001'),
+                              ('Сеньор-помидор', '40004, 71002'),
+                              ('Турецкий(острый)-АЩЩЩ', '40004, 71003'),
+                              ('Кечунез!!!', '40004, 71004'))
+                             )
+        self.step_four_1 = (4, 1, 'Сколько? Введи нужное количество', 3)
+        self.step_four_2 = (4, 2, 'Напиши мне сколько тебе нужно', 3)
+        self.step_five_1 = (5, 1, 'Вы выбрали: ', 4,
+                            (('Выбрать еще', '40000, 73001'),
+                             ('Перейти к оформлению заказа', '40006, 73001'))
+                            )
+        self.step_five_1 = (5, 2, 'Из того, что пожевать выбрано следующее: ', 4,
+                            (('Выбрать еще', '40000, 73001'),
+                             ('Готовьте давайте уже, есть хочу', '40006, 73001'))
+                            )
 
 if __name__ == '__main__':
     s0 = Dialogs()
-    data = s0.step_one_2
-    # s0.insert_question(data[0], data[1], data[2], data[3])
+    data = s0.step_four_1
+    s0.insert_question(data[0], data[1], data[2], data[3])
     # for dialog in data[4]:
-    #     s0.insert_dialog(data[0], data[1], dialog)
     #     if len(dialog) > 2:
-    #         s0.insert_emoji(data[0], data[1], dialog[2])
-
-    pass
+    #         s0.insert_dialogs_with_emoji(data[0], data[1], dialog)
+    #     else:
+    #         s0.insert_dialog(data[0], data[1], dialog)
+    # pass

@@ -1,5 +1,6 @@
 from Database.posgre_sql import StepTable, QuestionsTable, DialogsTable
-from Database.posgre_sql import Cart
+from Database.posgre_sql import Cart, CartProduct, Customer, Additional
+from Database.data_selector import SelectorDataDb
 
 """
 Command handler algorithm:
@@ -10,9 +11,13 @@ Command handler algorithm:
     50 000 - back to previous step;
     60 000 - insert new row in cart table;
     70 000 - insert new row in cart product table;
+    71 000 - update wishes in cart_product table;
+    72 000 - update count in cart_product table;
+    73 000 - update status in cart_product table;
+    80 000 - insert new customer;
 """
 
-class CommandHandler():
+class CommandHandler(SelectorDataDb):
     def __init__(self, commands, chat_id):
         self.chat_id = chat_id
         self.commands = commands.split(',')
@@ -21,6 +26,9 @@ class CommandHandler():
         self.questions = QuestionsTable()
         self.dialogs = DialogsTable()
         self.cart = Cart()
+        self.cart_prod = CartProduct()
+        self.customer = Customer()
+        self.wishes = Additional()
 
         self.command_parser()
 
@@ -43,6 +51,12 @@ class CommandHandler():
                     self.__back_to_previous_step(self.chat_id)
                 if cod == 60:
                     self.__insert_start_cart_data(self.chat_id)
+                if cod == 70:
+                    self.__insert_new_row_in_product_cart_table(self.chat_id, value)
+                if cod == 71:
+                    self.__update_wishes_in_cart_product_table(self.chat_id, value)
+                if cod == 80:
+                    self.__insert_new_customer(self.chat_id)
 
     def __change_style_id(self, value, chat_id):
         field_value = f'{self.steps.split_fields[2]}={value}'
@@ -107,6 +121,46 @@ class CommandHandler():
                                        f'{self.cart.split_fields[2]}',
                                        f'({chat_id},0)'
                                        )
+
+    def __insert_new_customer(self, chat_id):
+        self.customer.insert_data_in_table(self.customer.table_name,
+                                           f'{self.cart.split_fields[0]},'
+                                           f'{self.customer.split_fields[3]}',
+                                           f'({chat_id}, 1)'
+                                           )
+
+    def __select_max_cart_id(self, chat_id):
+        conditions = f'{self.cart.split_fields[1]}={chat_id}'
+        data = self.cart.select_in_table(self.cart.table_name,
+                                         f'MAX({self.cart.split_fields[0]})',
+                                         conditions)
+        return data[0][0]
+
+    def __insert_new_row_in_product_cart_table(self, chat_id, value):
+        print("STAR INSERT NEW ROW")
+        cart_id = self.__select_max_cart_id(chat_id)
+        self.cart_prod.insert_data_in_table(self.cart_prod.table_name,
+                                            f'{self.cart_prod.split_fields[1]},'
+                                            f'{self.cart_prod.split_fields[2]},'
+                                            f'{self.cart_prod.split_fields[5]}',
+                                            f'({cart_id}, {value}, 0)')
+
+    def __update_wishes_in_cart_product_table(self, chat_id, value):
+        wishes_name = self.__select_wishes_name_from_additional_table(value)
+        cart_product_id = self.select_last_cart_product_id(chat_id)
+        conditions = f'{self.cart_prod.split_fields[0]}={cart_product_id}'
+        field_value = f"{self.cart_prod.split_fields[4]}='{wishes_name}'"
+        self.cart_prod.update_fields(self.cart_prod.table_name,
+                                     field_value, conditions
+                                     )
+
+    def __select_wishes_name_from_additional_table(self, wishes_id):
+        conditions = f'{self.wishes.split_fields[0]}={wishes_id}'
+        data = self.wishes.select_in_table(self.wishes.table_name,
+                                           self.wishes.split_fields[1],
+                                           conditions)
+        return data[0][0]
+
 
 if __name__ == '__main__':
     a = CommandHandler(10001, 12)
