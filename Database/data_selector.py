@@ -52,6 +52,14 @@ class SelectorDataDb():
         if step_number == 2:
             sub_data = self.select_description_product(self.user_id)
             return data[0][0] + sub_data
+
+        elif step_number == 5:
+            sub_data = self.select_intermediate_data_about_cart(self.user_id)
+            print(sub_data)
+            return sub_data
+        elif step_number == 11:
+            data = self.select_final_data_about_cart(self.user_id)
+            return data
         else:
             return data[0][0]
 
@@ -129,6 +137,49 @@ class SelectorDataDb():
                                          conditions)
         print(data[0][0])
         return data[0][0]
+
+    def select_intermediate_data_about_cart(self, chat_id):
+        cart_id = self.select_last_cart_id(chat_id)
+        conditions = f'{self.cart_prod.split_fields[2]}={self.prod.split_fields[0]} AND' \
+                     f' {self.cart_prod.split_fields[1]}={cart_id} AND' \
+                     f' {self.cart_prod.split_fields[5]}=1'
+        data = self.cart_prod.inner_join_in_table(self.cart_prod.table_name,
+                                                  self.prod.table_name,
+                                                  f'{self.prod.split_fields[1]},'
+                                                  f'{self.cart_prod.split_fields[4]},'
+                                                  f'{self.cart_prod.split_fields[3]},'
+                                                  f'{self.prod.split_fields[3]}',
+                                                  conditions)
+        data = list(data)
+        i = 0
+        for item in data:
+            data[i] = list(data[i])
+            data[i][3] = data[i][3] * data[i][2]
+            i += 1
+        return data
+
+    def select_final_data_about_cart(self, chat_id):
+        products = self.select_intermediate_data_about_cart(chat_id)
+        customer_cart_data = self.select_data_about_customer_and_about_cart(chat_id)
+        data_list = [customer_cart_data[0], products]
+        return data_list
+
+    def select_data_about_customer_and_about_cart(self, chat_id):
+        cart_id = self.select_last_cart_id(chat_id)
+        fields = f'cart_table.id, mode, name, phone, address, customer_time, status'
+        main_table = 'cart_table'
+        sub_table_1 = 'date_time_place_table'
+        sub_table_2 = 'customer_table'
+        conditions_1 = f"cart_id = {cart_id} AND cart_table.id = {cart_id}"
+        conditions_2 = f"customer_table.id = user_id"
+        data = self.cart.three_table_join_in_table(main_table, sub_table_1, sub_table_2,
+                                                   fields, conditions_1, conditions_2)
+        return data
+
+
+
+
+
 
 if __name__ == '__main__':
     pass

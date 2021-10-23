@@ -102,6 +102,33 @@ class DatabasePSQL():
             )
             print(f'[INFO] Data <{fields_value}> from <{table_name}> where <{conditions}> was updated ')
 
+    def inner_join_in_table(self, main_table, sub_tables, fields, conditions):
+        @self.decorate_open_commit_close(main_table, sub_tables, fields, conditions)
+        def func(cursor, main_table, sub_tables, fields, conditions):
+            cursor.execute(
+                f"""SELECT {fields} FROM {main_table} INNER JOIN {sub_tables}
+                    ON {conditions};"""
+            )
+            data = cursor.fetchall()
+            print(f'[INFO] Data <{data}> was join from <{main_table}>, <{sub_tables}>')
+            return data
+        return func
+
+    def three_table_join_in_table(self, main_table, sub_table_1, sub_table_2,
+                                  fields, conditions_1, conditions_2):
+        @self.decorate_open_commit_close(main_table, sub_table_1, sub_table_2,
+                                         fields, conditions_1, conditions_2)
+        def func(cursor, main_table, sub_table_1, sub_table_2, fields,
+                 conditions_1, conditions_2):
+            cursor.execute(
+                f"""SELECT {fields} FROM {main_table} JOIN {sub_table_1}
+                    ON {conditions_1} JOIN {sub_table_2} ON {conditions_2};"""
+            )
+            data = cursor.fetchall()
+            print(f'[INFO] Data <{data}> was join from <{main_table}>, <{sub_table_1}>, <{sub_table_2}>')
+            return data
+        return func
+
 
 class StepTable(DatabasePSQL):
     def __init__(self):
@@ -212,12 +239,13 @@ class DateTimePlace(DatabasePSQL):
     def __init__(self):
         super(DateTimePlace, self).__init__()
         self.table_name = 'date_time_place_table'
-        self.fields_with_parameters = "cart_id  INTEGER references cart_table(id)," \
-                                      "date     DATE," \
-                                      "time     TIME," \
-                                      "mode     INTEGER," \
-                                      "address  varchar(255)"
-        self.fields = 'cart_id, date, time, mode, address'
+        self.fields_with_parameters = "cart_id          INTEGER references cart_table(id)," \
+                                      "date             DATE," \
+                                      "time             TIME," \
+                                      "mode             INTEGER," \
+                                      "address          varchar(255)," \
+                                      "customer_time    varchar(100)"
+        self.fields = 'cart_id, date, time, mode, address, customer_time'
         self.split_fields = self.fields.split(', ')
 
 
@@ -242,9 +270,10 @@ class TmpScores(DatabasePSQL):
         self.split_fields = self.fields.split(', ')
 
 if __name__ == '__main__':
-    db = CartProduct()
-    db.drop_table(db.table_name)
-    db.create_table(db.table_name, db.fields_with_parameters)
+    pass
+    # db = DateTimePlace()
+    # db.drop_table(db.table_name)
+    # db.create_table(db.table_name, db.fields_with_parameters)
     # db.insert_data_in_table(db.table_name, db.fields, (0, 1, 'Стандартный'))
     # data = db.select_in_table(db.table_name, db.fields)
     # print(data)

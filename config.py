@@ -1,6 +1,6 @@
 class ConfigTelebot():
     def __init__(self):
-        self.api_token = '1955432392:AAFIKGS33j1DsT-zsWIAc_fs6ckOX4yjLQY'
+        self.api_token = '2024821687:AAECgmbzUTykQHED_n52cuN0iB_nUMZArSs'
 
 class ConfigDatabase():
     def __init__(self):
