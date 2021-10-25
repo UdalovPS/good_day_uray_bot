@@ -10,3 +10,4 @@ from .posgre_sql import Customer
 from .posgre_sql import DateTimePlace
 from .posgre_sql import Scores
 from .posgre_sql import TmpScores
+from .posgre_sql import StatusTable

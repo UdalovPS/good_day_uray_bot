@@ -269,11 +269,26 @@ class TmpScores(DatabasePSQL):
         self.fields = 'customer_id, value'
         self.split_fields = self.fields.split(', ')
 
+class StatusTable(DatabasePSQL):
+    def __init__(self):
+        super(StatusTable, self).__init__()
+        self.table_name = 'status_table'
+        self.fields_with_parameters = 'id INTEGER PRIMARY KEY,' \
+                                      'description  varchar(20)'
+        self.fields = 'id, description'
+        self.split_fields = self.fields.split(', ')
+
 if __name__ == '__main__':
     pass
-    # db = DateTimePlace()
+    # db = StatusTable()
     # db.drop_table(db.table_name)
     # db.create_table(db.table_name, db.fields_with_parameters)
+    # statuses = ((0, 'Формируется'), (1, 'Сформирован'),
+    #             (2, 'Принят'), (3, 'Готов к выдаче'),
+    #             (4, 'Доставляется'), (5, 'Завершен'),
+    #             (10, 'Отменен'))
+    # for item in statuses:
+    #     db.insert_data_in_table(db.table_name, db.fields, item)
     # db.insert_data_in_table(db.table_name, db.fields, (0, 1, 'Стандартный'))
     # data = db.select_in_table(db.table_name, db.fields)
     # print(data)

@@ -1,6 +1,7 @@
-from Database.posgre_sql import StepTable, QuestionsTable, DialogsTable
-from Database.posgre_sql import Customer, EmojiTable, Product, CartProduct
-from Database.posgre_sql import Cart
+# from Database.posgre_sql import StepTable, QuestionsTable, DialogsTable
+# from Database.posgre_sql import Customer, EmojiTable, Product, CartProduct
+# from Database.posgre_sql import Cart
+from Database import *
 
 
 class SelectorDataDb():
@@ -14,6 +15,7 @@ class SelectorDataDb():
         self.prod = Product()
         self.cart_prod = CartProduct()
         self.cart = Cart()
+        self.status = StatusTable()
 
         self.step_id = self.select_step_number_from_db(self.user_id)
         self.style_id = self.select_style_id_from_db(self.user_id)
@@ -21,6 +23,7 @@ class SelectorDataDb():
         self.dialogs = self.select_dialog_from_db(self.step_id, self.style_id)
         self.emoji = self.select_emoji_for_dialog(self.step_id, self.style_id)
         self.black_list_data = self.check_black_list_about_customer(self.user_id)
+        self.status_description = self.select_status_description(self.user_id)
 
     def select_step_number_from_db(self, chat_id):
         conditions = f'{self.steps.split_fields[0]}={chat_id}'
@@ -166,7 +169,8 @@ class SelectorDataDb():
 
     def select_data_about_customer_and_about_cart(self, chat_id):
         cart_id = self.select_last_cart_id(chat_id)
-        fields = f'cart_table.id, mode, name, phone, address, customer_time, status'
+        fields = f'cart_table.id, user_id, mode, name, phone, address, customer_time, ' \
+                 f'status, date, time'
         main_table = 'cart_table'
         sub_table_1 = 'date_time_place_table'
         sub_table_2 = 'customer_table'
@@ -176,9 +180,25 @@ class SelectorDataDb():
                                                    fields, conditions_1, conditions_2)
         return data
 
+    def select_status_description(self, chat_id):
+        cart_id = self.select_last_cart_id(chat_id)
+        cart_status = self.select_status_number_of_cart(cart_id)
+        conditions = f'{self.status.split_fields[0]}={cart_status}'
+        data = self.status.select_in_table(self.status.table_name,
+                                           self.status.split_fields[1],
+                                           conditions
+                                           )
+        return data[0][0]
 
-
-
+    def select_status_number_of_cart(self, cart_id):
+        conditions = f'{self.cart.split_fields[0]}={cart_id}'
+        print(conditions)
+        data = self.cart.select_in_table(self.cart.table_name,
+                                         self.cart.split_fields[2],
+                                         conditions
+                                         )
+        print(data)
+        return data[0][0]
 
 
 if __name__ == '__main__':
