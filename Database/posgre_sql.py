@@ -140,10 +140,11 @@ class StepTable(DatabasePSQL):
     def __init__(self):
         super().__init__()
         self.table_name = 'step_table'
-        self.fields_with_parameters = "user_id  INTEGER," \
-                                      "step_id  INTEGER," \
-                                      "style_id INTEGER"
-        self.fields = 'user_id, step_id, style_id'
+        self.fields_with_parameters = "user_id      INTEGER," \
+                                      "step_id      INTEGER," \
+                                      "style_id     INTEGER," \
+                                      "sticker_id   INTEGER"
+        self.fields = 'user_id, step_id, style_id, sticker_id'
         self.split_fields = self.fields.split(', ')
 
 
@@ -155,7 +156,7 @@ class QuestionsTable(DatabasePSQL):
                                       'style_id     INTEGER,' \
                                       'question     varchar(255),' \
                                       'pre_question INTEGER,' \
-                                      'sticker      varchar(20)'
+                                      'sticker      varchar(100)'
         self.fields = 'step_id, style_id, question, pre_question, sticker'
         self.split_fields = self.fields.split(', ')
 
@@ -168,7 +169,7 @@ class DialogsTable(DatabasePSQL, ConfigDatabase):
                                       "style_id     INTEGER, " \
                                       "dialog       varchar(255)," \
                                       "commands     varchar(50)," \
-                                      "emoji        varchar(30)"
+                                      "emoji        varchar(100)"
         self.fields = 'step_id, style_id, dialog, commands, emoji'
         self.split_fields = self.fields.split(', ')
 
@@ -221,7 +222,7 @@ class CartProduct(DatabasePSQL):
         super(CartProduct, self).__init__()
         self.table_name = 'cart_product_table'
         self.fields_with_parameters = "cart_product_id  SERIAL PRIMARY KEY," \
-                                      "cart_id          INTEGER references cart_table(id)," \
+                                      "cart_id          INTEGER references cart_table(id) ON DELETE CASCADE," \
                                       "product_id       INTEGER references product_table(id)," \
                                       "count            INTEGER," \
                                       "wishes           varchar(255)," \
@@ -246,7 +247,7 @@ class DateTimePlace(DatabasePSQL):
     def __init__(self):
         super(DateTimePlace, self).__init__()
         self.table_name = 'date_time_place_table'
-        self.fields_with_parameters = "cart_id          INTEGER references cart_table(id)," \
+        self.fields_with_parameters = "cart_id          INTEGER references cart_table(id) ON DELETE CASCADE," \
                                       "date             DATE," \
                                       "time             TIME," \
                                       "mode             INTEGER," \
@@ -272,7 +273,8 @@ class TmpScores(DatabasePSQL):
         super(TmpScores, self).__init__()
         self.table_name = 'tmp_scores_table'
         self.fields_with_parameters = "customer_id  INTEGER references customer_table(id)," \
-                                      "value        INTEGER"
+                                      "value        INTEGER," \
+                                      "cart_id      INTEGER references cart_table(id) ON DELETE CASCADE"
         self.fields = 'customer_id, value'
         self.split_fields = self.fields.split(', ')
 
@@ -297,7 +299,7 @@ class AdminTable(DatabasePSQL):
 
 if __name__ == '__main__':
     pass
-    db = QuestionsTable()
+    db = CartProduct()
     db.drop_table(db.table_name)
     db.create_table(db.table_name, db.fields_with_parameters)
     # statuses = ((0, 'Формируется'), (1, 'Сформирован'),

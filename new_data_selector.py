@@ -73,10 +73,10 @@ class SelectorDataDb():
         return data[0][0]
 
     def select_pre_step_dialog(self, step_id, command, style=None):
-        if style != 0:
-            style_id = self.select_style_id_from_db()
-        else:
+        if style == 0:
             style_id = style
+        else:
+            style_id = self.select_style_id_from_db()
         conditions = f"{self.dia.split_fields[0]}={step_id} "\
                      f"AND {self.dia.split_fields[1]}={style_id} "\
                      f"AND {self.dia.split_fields[3]}='{command}'"
@@ -88,13 +88,15 @@ class SelectorDataDb():
         else:
             return None
 
-    def select_emoji_for_dialog(self, step_number, style_id):
-        conditions = f"{self.emj.split_fields[0]}={step_number}" \
-                     f"AND {self.emj.split_fields[1]}={style_id}"
-        data = self.emj.select_in_table(self.emj.table_name,
-                                        f'{self.emj.split_fields[2]}',
-                                        conditions)
-        print(data)
+    def select_sticker_id_from_db(self):
+        chat_id = self.message.chat.id
+        conditions = f'{self.steps.split_fields[0]}={chat_id}'
+        data = self.steps.select_in_table(self.steps.table_name,
+                                          self.steps.split_fields[3],
+                                          conditions
+                                          )
+        # print('CONDITIONS', conditions)
+        # print('STICKER ID', data)
         if data:
             return data[0][0]
         else:

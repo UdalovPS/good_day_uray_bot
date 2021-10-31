@@ -10,10 +10,11 @@ class DataForMessage:
 
 
 class Question:
-    def __init__(self, question=None, sticker=None, pre_answer=None) -> None:
+    def __init__(self, question=None, sticker=None, pre_answer=None, sticker_id=None) -> None:
         self.quest = question
         self.sticker = sticker
         self.pre_answer = pre_answer
+        self.sticker_msg_id = sticker_id
 
 
 class DialogsList:
@@ -63,15 +64,13 @@ class StandartDataForMessage(DataCreator):
     def build_question(self) -> Question:
         db = SelectorDataDb(self.message)
         data = db.select_question_from_db()[0]
-        # pre_question = db.select_pre_question_id()
-        print('Question: ', data)
-        return Question(*data)
+        stiker_id = db.select_sticker_id_from_db()
+        return Question(*data, sticker_id=stiker_id)
 
     def build_dialog_list(self) -> DialogsList:
         data = SelectorDataDb(self.message)
         data_dialogs = data.select_dialog_from_db()
         style_id = data.select_style_id_from_db()
-        # pre_step = data.select_pre_question_id()
         dialogs = DialogsList()
         self.add_objects_in_dialog_list(dialogs, data_dialogs)
         if style_id != 0:
@@ -79,9 +78,7 @@ class StandartDataForMessage(DataCreator):
         return dialogs
 
     def add_objects_in_dialog_list(self, obj, dialogs) -> None:
-        print('Dialogs', dialogs)
         for dialog in dialogs:
-            print('THIS I', dialog)
             data = Dialogs(*dialog)
             obj.add_obj_in_list(data)
 
@@ -141,9 +138,7 @@ class PreviousQuestionInlineBtn(DataCreator):
         return dialogs
 
     def add_objects_in_dialog_list(self, obj, dialogs) -> None:
-        print('Dialogs', dialogs)
         for dialog in dialogs:
-            print('THIS I', dialog)
             data = Dialogs(*dialog)
             obj.add_obj_in_list(data)
 
@@ -164,7 +159,8 @@ class PreviousInlineButtonAnswer(DataCreator):
     def build_question(self) -> Question:
         db = SelectorDataDb(self.call.message)
         pre_step_id = db.select_pre_question_id()
-        if pre_step_id == 0:
+        step_id = db.select_step_id_from_db()
+        if pre_step_id == 0 and step_id == 0:
             pre_btn_customer_answer = db.select_pre_step_dialog(pre_step_id, self.call.data, 0)
         else:
             pre_btn_customer_answer = db.select_pre_step_dialog(pre_step_id, self.call.data)
@@ -177,9 +173,7 @@ class PreviousInlineButtonAnswer(DataCreator):
         return dialogs
 
     def add_objects_in_dialog_list(self, obj, dialogs) -> None:
-        print('Dialogs', dialogs)
         for dialog in dialogs:
-            print('THIS I', dialog)
             data = Dialogs(*dialog)
             obj.add_obj_in_list(data)
 
@@ -197,17 +191,19 @@ class AnswerFactory:
         if black_list == 2:
             data = BlackListData(message).create_data_for_message()
         else:
-            CommandHandler('10000, 11000', message)
+            CommandHandler('10000, 11000, 30000', message)
             data = StandartDataForMessage(message).create_data_for_message()
         return data
 
     def answer_to_inline_commands(self, call):
-        """answer to no concrete inline commands"""
+        """answer to not concrete inline commands
+            :return - DataForMessage object"""
         CommandHandler(call.data, call.message)
         data = StandartDataForMessage(call.message).create_data_for_message()
         return data
 
     def answer_to_back_inline_commands(self, call):
+        """:return - DataForMessage object"""
         CommandHandler('14000,', call.message)
         data = StandartDataForMessage(call.message).create_data_for_message()
         return data
@@ -222,10 +218,15 @@ class AnswerFactory:
         data = PreviousInlineButtonAnswer(call).create_data_for_message()
         return data
 
+    def update_sticker_id_in_step_table(self, sticker):
+        """This method update now sticker_message_id in step_table"""
+        CommandHandler('15000,', sticker)
+
+    def delete_sticker_id_in_step_table(self, call):
+        """This method delete previous sticker_message_id from step_table"""
+        CommandHandler('16000,', call.message)
+
 
 
 if __name__ == '__main__':
-    test = StandartDataForMessage(13)
-    data = test.create_data_for_message()
-    for i in data.dialogs_list.dialogs_list:
-        print(i.dialog)
+    pass

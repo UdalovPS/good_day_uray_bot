@@ -6,10 +6,18 @@ class DialogTree():
         self.dialogs = DialogsTable()
         self.emj = EmojiTable()
 
-    def insert_question(self, step_number, style_id, question, pre_question, sticker):
+    def insert_question_with_sticker(self, step_number, style_id, question, pre_question, sticker):
         self.questions.insert_data_in_table(self.questions.table_name,
                                             self.questions.fields,
                                             f'{step_number, style_id, question, pre_question, sticker}')
+
+    def insert_question(self, step_number, style_id, question, pre_question):
+        self.questions.insert_data_in_table(self.questions.table_name,
+                                            f"{self.questions.split_fields[0]},"
+                                            f"{self.questions.split_fields[1]},"
+                                            f"{self.questions.split_fields[2]},"
+                                            f"{self.questions.split_fields[3]}",
+                                            f'{step_number, style_id, question, pre_question}')
 
     def insert_dialog(self, step, style, dialog):
         self.dialogs.insert_data_in_table(self.dialogs.table_name,
@@ -52,40 +60,43 @@ class Dialogs(DialogTree):
         super(Dialogs, self).__init__()
         """(step, style, question, previous step, sticker) 
             (dialog, commands, emoji IF EXISTS)"""
-        self.style = (0, 0, 'В каком стиле будем вести диалог?', 0, 'sticker',
+        self.style = (0, 0, 'В каком стиле будем вести диалог?', 0, None,
                       (('В стандартном', '12001,', '\U0001F60E'),
                        ('В шуточном', '12002,', '\U0001F600'))
                       )
 
-        self.step_zero_1 = (0, 1, 'Что хотите заказать?', 0, 'sticker',
+        self.step_zero_1 = (0, 1, 'Что хотите заказать?', 0,
+                            'CAACAgIAAxkBAAEDMehhfrjyA7BGzg0Ozpt7BpKqwSdTiQACsAsAAi8P8Aa7wYsCe5kwfCEE',
                           (('Шаурму', '13001,', '\U0001F32F'),)
                           )
-        self.step_zero_2 = (0, 2, 'Что будешь хавать?', 0, 'sticker',
+        self.step_zero_2 = (0, 2, 'Чего хочешь отведать, Дорогой?', 0,
+                            'CAACAgIAAxkBAAEDMehhfrjyA7BGzg0Ozpt7BpKqwSdTiQACsAsAAi8P8Aa7wYsCe5kwfCEE',
                           (('Шаурму', '13001,', '\U0001F32F'),)
                           )
-        self.step_one_1 = (1, 1, 'Какую шаурму желаете?', 0,
-                          (('Шаурма №1', '40002, 70001', ':one:'),
-                           ('Шаурма №2', '40002, 70002', ':two:'),
-                           ('Шаурма №3', '40002, 70003', ':three:'),
-                           ('Шаурма №4', '40002, 70004', ':one:'),
-                           ('Шаурма №5/1', '40002, 70051', ':two:'),
-                           ('Шаурма №5/2', '40002, 70052', ':three:'),
-                           ('Шаурма №6 вегетерианская', '40002, 70006', ':three:'),
-                           ('Шаурма №7 с говядиной', '40002, 70007', ':one:'),
-                           ('Шаурма №8', '40002, 70008', ':two:'),
-                           ('Шаурма №9 три мяса', '40002, 70009', ':three:'))
+        self.step_one_1 = (1, 1, 'Какую шаурму желаете?', 0, None,
+                          (('Шаурма №1', '13002, 20001', '\U00000031\U000020E3'),
+                           ('Шаурма №2', '13002, 20002', '\U00000032\U000020E3'),
+                           ('Шаурма №3', '13002, 20003', '\U00000033\U000020E3'),
+                           ('Шаурма №4', '13002, 20004', '\U00000034\U000020E3'),
+                           ('Шаурма №5/1', '13002, 20051', '\U00000035\U000020E3/\U00000031\U000020E3'),
+                           ('Шаурма №5/2', '13002, 20052', '\U00000035\U000020E3/\U00000032\U000020E3'),
+                           ('Шаурма №6 вегетерианская', '13002, 20006', '\U00000036\U000020E3'),
+                           ('Шаурма №7 с говядиной', '13002, 20007', '\U00000037\U000020E3'),
+                           ('Шаурма №8', '13002, 20008', '\U00000038\U000020E3'),
+                           ('Шаурма №9 три мяса', '13002, 20009', '\U00000039\U000020E3'))
                           )
-        self.step_one_2 = (1, 2, 'Харош!!! Вкуснее шаурмы ничего нет на свете. Какую тебе?', 0,
-                          (('Шаурма №1', '40002, 70001', ':one:'),
-                           ('Шаурма №2', '40002, 70002', ':two:'),
-                           ('Шаурма №3', '40002, 70003', ':three:'),
-                           ('Шаурма №4', '40002, 70004', ':one:'),
-                           ('Шаурма №5/1', '40002, 70051', ':two:'),
-                           ('Шаурма №5/2', '40002, 70052', ':three:'),
-                           ('Шаурма №6 вегетерианская', '40002, 70006', ':three:'),
-                           ('Шаурма №7 с говядиной', '40002, 70007', ':one:'),
-                           ('Шаурма №8', '40002, 70008', ':two:'),
-                           ('Шаурма №9 три мяса', '40002, 70009', ':three:'))
+        self.step_one_2 = (1, 2, 'Харош!!! Какую именно шавуху ты хочешь?', 0,
+                           'CAACAgIAAxkBAAEDMgVhfsPJOWmtndGrEmOiMwhz5z-2HwACBQADvWSZJf4AAYN79D1ZWSEE',
+                          (('Шаурма №1', '13002, 20001', '\U00000031\U000020E3'),
+                           ('Шаурма №2', '13002, 20002', '\U00000032\U000020E3'),
+                           ('Шаурма №3', '13002, 20003', '\U00000033\U000020E3'),
+                           ('Шаурма №4', '13002, 20004', '\U00000034\U000020E3'),
+                           ('Шаурма №5/1', '13002, 20051', '\U00000035\U000020E3/\U00000031\U000020E3'),
+                           ('Шаурма №5/2', '13002, 20052', '\U00000035\U000020E3/\U00000032\U000020E3'),
+                           ('Шаурма №6 вегетерианская', '13002, 20006', '\U00000036\U000020E3'),
+                           ('Шаурма №7 с говядиной', '13002, 20007', '\U00000037\U000020E3'),
+                           ('Шаурма №8', '13002, 20008', '\U00000038\U000020E3'),
+                           ('Шаурма №9 три мяса', '13002, 20009', '\U00000039\U000020E3'))
                           )
         self.step_two_1 = (2, 1, 'Состав: ', 1,
                            (('Далее', '40003,'),)
@@ -155,8 +166,11 @@ class AdminDialogs(DialogTree):
 if __name__ == '__main__':
     s0 = Dialogs()
     # s0 = AdminDialogs()
-    data = s0.step_zero_2
-    # s0.insert_question(data[0], data[1], data[2], data[3], data[4])
+    data = s0.step_one_2
+    # if data[4] == None:
+    #     s0.insert_question(data[0], data[1], data[2], data[3])
+    # else:
+    #     s0.insert_question_with_sticker(data[0], data[1], data[2], data[3], data[4])
     # for dialog in data[5]:
     #     if len(dialog) > 2:
     #         s0.insert_dialogs_with_emoji(data[0], data[1], dialog)
