@@ -11,3 +11,4 @@ from .posgre_sql import DateTimePlace
 from .posgre_sql import Scores
 from .posgre_sql import TmpScores
 from .posgre_sql import StatusTable
+from .posgre_sql import AdminTable

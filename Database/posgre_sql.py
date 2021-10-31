@@ -93,14 +93,20 @@ class DatabasePSQL():
             return data
         return func
 
-    def update_fields(self, table_name, fields_value, conditions):
+    def update_fields(self, table_name, fields_value, conditions=None):
         @self.decorate_open_commit_close(table_name, fields_value, conditions)
         def func(cursor, table_name, fields_value, conditions):
-            cursor.execute(
-                f"""UPDATE {table_name} SET {fields_value}
-                    WHERE {conditions};"""
-            )
-            print(f'[INFO] Data <{fields_value}> from <{table_name}> where <{conditions}> was updated ')
+            if conditions:
+                cursor.execute(
+                    f"""UPDATE {table_name} SET {fields_value}
+                        WHERE {conditions};"""
+                )
+                print(f'[INFO] Data <{fields_value}> from <{table_name}> where <{conditions}> was updated ')
+            else:
+                cursor.execute(
+                    f"""UPDATE {table_name} SET {fields_value};"""
+                )
+
 
     def inner_join_in_table(self, main_table, sub_tables, fields, conditions):
         @self.decorate_open_commit_close(main_table, sub_tables, fields, conditions)
@@ -148,8 +154,9 @@ class QuestionsTable(DatabasePSQL):
         self.fields_with_parameters = 'step_id      INTEGER,' \
                                       'style_id     INTEGER,' \
                                       'question     varchar(255),' \
-                                      'pre_question INTEGER'
-        self.fields = 'step_id, style_id, question, pre_question'
+                                      'pre_question INTEGER,' \
+                                      'sticker      varchar(20)'
+        self.fields = 'step_id, style_id, question, pre_question, sticker'
         self.split_fields = self.fields.split(', ')
 
 
@@ -278,11 +285,21 @@ class StatusTable(DatabasePSQL):
         self.fields = 'id, description'
         self.split_fields = self.fields.split(', ')
 
+
+class AdminTable(DatabasePSQL):
+    def __init__(self):
+        super(AdminTable, self).__init__()
+        self.table_name = 'admin_table'
+        self.fields_with_parameters = 'password     INTEGER,' \
+                                      'tmp_cart_id  INTEGER'  #414141
+        self.fields = 'password, tmp_cart_id'
+        self.split_fields = self.fields.split(', ')
+
 if __name__ == '__main__':
     pass
-    # db = StatusTable()
-    # db.drop_table(db.table_name)
-    # db.create_table(db.table_name, db.fields_with_parameters)
+    db = QuestionsTable()
+    db.drop_table(db.table_name)
+    db.create_table(db.table_name, db.fields_with_parameters)
     # statuses = ((0, 'Формируется'), (1, 'Сформирован'),
     #             (2, 'Принят'), (3, 'Готов к выдаче'),
     #             (4, 'Доставляется'), (5, 'Завершен'),

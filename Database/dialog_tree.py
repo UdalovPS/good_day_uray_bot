@@ -6,10 +6,10 @@ class DialogTree():
         self.dialogs = DialogsTable()
         self.emj = EmojiTable()
 
-    def insert_question(self, step_number, style_id, question, pre_question):
+    def insert_question(self, step_number, style_id, question, pre_question, sticker):
         self.questions.insert_data_in_table(self.questions.table_name,
                                             self.questions.fields,
-                                            f'{step_number, style_id, question, pre_question}')
+                                            f'{step_number, style_id, question, pre_question, sticker}')
 
     def insert_dialog(self, step, style, dialog):
         self.dialogs.insert_data_in_table(self.dialogs.table_name,
@@ -50,16 +50,18 @@ class FirstStep(DialogTree):
 class Dialogs(DialogTree):
     def __init__(self):
         super(Dialogs, self).__init__()
-        """(step, style, question, previous step) 
+        """(step, style, question, previous step, sticker) 
             (dialog, commands, emoji IF EXISTS)"""
-        self.style = (0, 0, 'В каком стиле будем вести диалог?', 0,
-                      (('В стандартном', '10001,'), ('Как БРО!', '10002,')))
+        self.style = (0, 0, 'В каком стиле будем вести диалог?', 0, 'sticker',
+                      (('В стандартном', '12001,', '\U0001F60E'),
+                       ('В шуточном', '12002,', '\U0001F600'))
+                      )
 
-        self.step_zero_1 = (0, 1, 'Что хотите заказать?', 0,
-                          (('Шаурму', '40001,', ':burrito:'),)
+        self.step_zero_1 = (0, 1, 'Что хотите заказать?', 0, 'sticker',
+                          (('Шаурму', '13001,', '\U0001F32F'),)
                           )
-        self.step_zero_2 = (0, 2, 'Что будешь хавать?', 0,
-                          (('Шаурму', '40001,', ':burrito:'),)
+        self.step_zero_2 = (0, 2, 'Что будешь хавать?', 0, 'sticker',
+                          (('Шаурму', '13001,', '\U0001F32F'),)
                           )
         self.step_one_1 = (1, 1, 'Какую шаурму желаете?', 0,
                           (('Шаурма №1', '40002, 70001', ':one:'),
@@ -130,13 +132,34 @@ class Dialogs(DialogTree):
         self.step_ten_1 = (10, 1, 'Напишите к какому времени подготовить заказ?', 9)
         self.step_ten_2 = (10, 2, 'Напиши во сколько тебя ждать, братишка?', 9)
 
+
+class AdminDialogs(DialogTree):
+    def __init__(self):
+        super(AdminDialogs, self).__init__()
+        self.start_admin_step = (900, 0, 'Введите код доступа', 0)
+        self.first_admin_msg = (901, 0, 'Доступ подтвержден. Выберите команду', 900,
+                                (('Управление заказами', '40910,'),
+                                ('Управление черным списком', '40920,'),
+                                ('Управление скидками', '40930,'))
+                                )
+        self.choice_cart_status = (910, 0, 'Введите номер заказа', 901)
+        self.update_cart_status = (911, 0, '', 910,
+                                   (('Заказ принят', '40912, 93002'),
+                                    ('Заказ готов к выдаче', '40912, 93003'),
+                                    ('Заказ доставляется', '40912, 93004'),
+                                    ('Заказ завершен', '40912, 93005'),
+                                    ('Заказ отменен', '40912, 93010'))
+                                   )
+        self.state_is_changed = (912, 0, 'Статус заказа изменен', 911)
+
 if __name__ == '__main__':
     s0 = Dialogs()
-    data = s0.step_ten_2
-    s0.insert_question(data[0], data[1], data[2], data[3])
-    # for dialog in data[4]:
+    # s0 = AdminDialogs()
+    data = s0.step_zero_2
+    # s0.insert_question(data[0], data[1], data[2], data[3], data[4])
+    # for dialog in data[5]:
     #     if len(dialog) > 2:
     #         s0.insert_dialogs_with_emoji(data[0], data[1], dialog)
     #     else:
     #         s0.insert_dialog(data[0], data[1], dialog)
-    # pass
+    pass

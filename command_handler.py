@@ -23,8 +23,10 @@ Command handler algorithm:
     73 000 - update status in cart_product table and customer name;
     74 000 - update phone number;
     80 000 - insert new customer;
-    90 000 - end cart with user;
+    90 000 - update cart status;
     91 000 - delete garbage from db;
+    92 000 - update tmp_cart_id in admin table;
+    
 """
 
 class CommandHandler(SelectorDataDb):
@@ -41,6 +43,7 @@ class CommandHandler(SelectorDataDb):
         self.customer = Customer()
         self.wishes = Additional()
         self.date_place = DateTimePlace()
+        self.admin = AdminTable()
 
         self.command_parser()
 
@@ -87,6 +90,12 @@ class CommandHandler(SelectorDataDb):
                     self.__update_cart_status(self.chat_id, value)
                 if cod == 91:
                     self.__delete_garbage_from_db(self.chat_id)
+                if cod == 92:
+                    self.__update_tmp_cart_id(self.message_text)
+                    break
+                if cod == 93:
+                    self.__update_cart_status(self.chat_id, value,
+                                              self.__select_tmp_cart_id())
 
     def __change_style_id(self, value, chat_id):
         field_value = f'{self.steps.split_fields[2]}={value}'
@@ -243,10 +252,12 @@ class CommandHandler(SelectorDataDb):
         self.date_place.update_fields(self.date_place.table_name,
                                       field_value, conditions)
 
-    def __update_cart_status(self, chat_id, value):
-        cart_id = self.__select_max_cart_id(chat_id)
+    def __update_cart_status(self, chat_id, value, cart_number=None):
+        if not cart_number:
+            cart_id = self.__select_max_cart_id(chat_id)
+        else:
+            cart_id = cart_number
         conditions = f'{self.cart.split_fields[0]}={cart_id}'
-        print(conditions)
         field_value = f"{self.cart.split_fields[2]}={value}"
         self.cart.update_fields(self.cart.table_name,
                                 field_value, conditions)
@@ -257,6 +268,16 @@ class CommandHandler(SelectorDataDb):
         cart_prod_conditions = f'{self.cart_prod.split_fields[1]}={cart_id} AND {self.cart_prod.split_fields[5]}=0'
         self.cart_prod.delete_data_from_table(self.cart_prod.table_name, cart_prod_conditions)
         self.cart.delete_data_from_table(self.cart.table_name, cart_conditions)
+
+    def __update_tmp_cart_id(self, new_cart_id):
+        field_value = f"{self.admin.split_fields[1]}={new_cart_id}"
+        self.admin.update_fields(self.admin.table_name, field_value)
+
+    def __select_tmp_cart_id(self):
+        data = self.admin.select_in_table(self.admin.table_name,
+                                          self.admin.split_fields[1])
+        return data[0][0]
+
 
 
 

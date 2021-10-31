@@ -12,6 +12,15 @@ dp = Dispatcher(bot)
 logging.basicConfig(level=logging.INFO)
 
 class MyBot():
+    async def add_cart_number_to_callback_data(self, data, keyboard, cart_number):
+        for dialog in data.dialogs:
+            if data.emoji:
+                keyboard.add(types.InlineKeyboardButton(text=(dialog[0] + emojize(data.emoji)),
+                                                        callback_data=dialog[1]))
+            else:
+                print('CART NUMBER', dialog[1] + f' {cart_number}')
+                keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]+f', {cart_number}'))
+
     async def add_standart_dialogs_to_inline_keyboard(self, data, keyboard):
         for dialog in data.dialogs:
             if data.emoji:
@@ -78,48 +87,57 @@ class MyBot():
         text_msg = await DataCartFormer().data_for_customer_about_cart(data.quest, 'Ваш заказ:', data.status_description)
         await message.answer(text_msg, reply_markup=keyboard)
 
+    async def check_admin_password(self, message):
+        admin_password = SelectorDataDb(message.chat.id).select_admin_password()
+        try:
+            if admin_password == int(message.text):
+                CommandHandler('40901,', message.chat.id)
+                data = SelectorDataDb(message.chat.id)
+                keyboard = types.InlineKeyboardMarkup()
+                await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
+                await message.answer(data.quest, reply_markup=keyboard)
+            else:
+                await message.answer('Неверный код. Ошибка доступа!')
+        except ValueError:
+            await message.answer('Неверный код. Ошибка доступа!')
+
+    async def check_cart_to_number(self, message):
+        try:
+            CommandHandler('40911, 92000', message.chat.id, int(message.text))
+            data = SelectorDataDb(message.chat.id)
+            keyboard = types.InlineKeyboardMarkup()
+            await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
+            personal_msg = await DataCartFormer().data_for_customer_about_cart_for_personal(data.quest,
+                                                                                            'Ваш заказ:',
+                                                                                            data.select_status_description(message.chat.id,
+                                                                                                                           data.select_tmp_cart_id()))
+            await message.answer(personal_msg, reply_markup=keyboard)
+        except ValueError or IndexError:
+            await message.answer('Данные по заказу отсутствуют')
+
     @dp.callback_query_handler(text='end')
     async def end_cart_with_user(call: types.CallbackQuery):
         CommandHandler('90001, 91000', call.message.chat.id)
         data = SelectorDataDb(call.message.chat.id)
-        # money_sum = 0
-        # cart_id = data.quest[0][0]
-        # mode = data.quest[0][1]
-        # if mode == 1: mode = 'Самовывоз'
-        # else: mode = 'Доставка'
-        # name = data.quest[0][2]
-        # phone = data.quest[0][3]
-        # address = data.quest[0][4]
-        # if not address: address = '-'
-        # customer_time = data.quest[0][5]
-        # if not customer_time: customer_time = '-'
-        # status = data.quest[0][6]
-        # if status == 0:
-        #     status = 'Оформляется'
-        # elif status == 1:
-        #     status = 'Оформлен'
-        # products = data.quest[1]
         customer_msg = await DataCartFormer().data_for_customer_about_cart(data.quest, 'Ваш заказ:', data.status_description)
-        persoanl_msg = await DataCartFormer().data_for_customer_about_cart_for_personal(data.quest, 'Ваш заказ:', data.status_description)
-        # await call.message.answer(f'Номер Заказа: {cart_id}\n{mode}\n'
-        #                      f'Имя заказчика: {name}\nНомер телефона: {phone}\n'
-        #                      f'Адрес доставки: {address}\nВремя: {customer_time}\n'
-        #                      f'Статус заказа: {status}')
-
-        # for item in products:
-        #     money_sum += item[3]
-        #     await call.message.answer(f'1){item[0]}\n2){item[1]}\n3)количество: {item[2]}\n4)сумма: {item[3]} рублей')
-        # await call.message.answer(f'Сумма заказа: {money_sum} рублей')
-        # await bot.send_message(chat_id='-1001558221765', text=f'Номер Заказа: {cart_id}\n{mode}\n'
-        #                      f'Имя заказчика: {name}\nНомер телефона: {phone}\n'
-        #                      f'Адрес доставки: {address}\nВремя: {customer_time}\n'
-        #                      f'Статус заказа: {status}\n{products}\nСумма заказа: {money_sum} ')
+        personal_msg = await DataCartFormer().data_for_customer_about_cart_for_personal(data.quest, 'Ваш заказ:', data.status_description)
         await call.message.answer(customer_msg)
-        await bot.send_message(chat_id='-1001558221765', text=persoanl_msg)
+        await bot.send_message(chat_id='-1001558221765', text=personal_msg)
 
     @dp.message_handler(commands='status')
     async def status_message(message: types.Message):
         await message.answer('Bot is working' + emojize(":pizza:"))
+
+    @dp.message_handler(commands='control')
+    async def start_control_dialog(message: types.Message):
+        CommandHandler('20000, 30000, 40900', message.chat.id)
+        data = SelectorDataDb(message.chat.id)
+        keyboard = types.InlineKeyboardMarkup()
+        await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
+        if not data.style_id == 0:
+            keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
+        await message.answer(data.quest, reply_markup=keyboard)
+        await bot.delete_message(message.chat.id, message.message_id)
 
     @dp.message_handler(commands='заказ')
     async def start_dialog(message: types.Message):
@@ -139,6 +157,8 @@ class MyBot():
     @dp.message_handler(content_types='text')
     async def handle_text_message(message: types.Message):
         data = SelectorDataDb(message.chat.id)
+        if data.step_id == 910: await MyBot().check_cart_to_number(message)
+        if data.step_id == 900: await MyBot().check_admin_password(message)
         if data.step_id == 4: await MyBot().add_number_products(message)
         if data.step_id == 6: await MyBot().update_customer_name(message)
         if data.step_id == 7: await MyBot().update_phone_number(message)
@@ -165,13 +185,21 @@ class MyBot():
                                                      )
         CommandHandler(call.data, call.message.chat.id)
         data = SelectorDataDb(call.message.chat.id)
-        keyboard = types.InlineKeyboardMarkup()
-        await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
-        keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
+        if data.step_id == 912:
+            personal_msg = await DataCartFormer().data_for_customer_about_cart_for_personal(data.quest,
+                                                                                            'Ваш заказ:',
+                                                                                            data.select_status_description(call.message.chat.id,
+                                                                                                                           data.select_tmp_cart_id()))
+            await call.message.answer(personal_msg)
+        else:
+            keyboard = types.InlineKeyboardMarkup()
+            await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
+            if not data.style_id == 0:
+                keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
 
-        await call.message.answer(data.quest, reply_markup=keyboard)
-        await bot.edit_message_text(f'<u>{pre_answer}</u>', call.message.chat.id,
-                                    call.message.message_id, reply_markup='')
+            await call.message.answer(data.quest, reply_markup=keyboard)
+            await bot.edit_message_text(f'<u>{pre_answer}</u>', call.message.chat.id,
+                                        call.message.message_id, reply_markup='')
 
 
 if __name__ == '__main__':

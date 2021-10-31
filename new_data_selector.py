@@ -1,13 +1,10 @@
-# from Database.posgre_sql import StepTable, QuestionsTable, DialogsTable
-# from Database.posgre_sql import Customer, EmojiTable, Product, CartProduct
-# from Database.posgre_sql import Cart
 from Database import *
 
 
 class SelectorDataDb():
-    def __init__(self, user_id, message_text=None):
-        self.user_id = user_id
-        self.message_text = message_text
+    def __init__(self, message):
+        self.message = message
+
         self.steps = StepTable()
         self.questions = QuestionsTable()
         self.dia = DialogsTable()
@@ -19,26 +16,20 @@ class SelectorDataDb():
         self.status = StatusTable()
         self.admin = AdminTable()
 
-        self.step_id = self.select_step_number_from_db(self.user_id)
-        self.style_id = self.select_style_id_from_db(self.user_id)
-        self.quest = self.select_question_from_db(self.step_id, self.style_id)
-        self.dialogs = self.select_dialog_from_db(self.step_id, self.style_id)
-        self.emoji = self.select_emoji_for_dialog(self.step_id, self.style_id)
-        self.black_list_data = self.check_black_list_about_customer(self.user_id)
-        self.status_description = self.select_status_description(self.user_id)
-
-    def select_step_number_from_db(self, chat_id):
+    def select_step_id_from_db(self):
+        chat_id = self.message.chat.id
         conditions = f'{self.steps.split_fields[0]}={chat_id}'
-        step_number = self.steps.select_in_table(self.steps.table_name,
-                                                 self.steps.split_fields[1],
-                                                 conditions
-                                                 )
-        if step_number:
-            return step_number[0][0]
+        step_id = self.steps.select_in_table(self.steps.table_name,
+                                             self.steps.split_fields[1],
+                                             conditions
+                                             )
+        if step_id:
+            return step_id[0][0]
         else:
             return None
 
-    def select_style_id_from_db(self, chat_id):
+    def select_style_id_from_db(self):
+        chat_id = self.message.chat.id
         conditions = f'{self.steps.split_fields[0]}={chat_id}'
         style_id = self.steps.select_in_table(self.steps.table_name,
                                               self.steps.split_fields[2],
@@ -48,35 +39,21 @@ class SelectorDataDb():
         else:
             return None
 
-    def select_question_from_db(self, step_number, style_id):
-        conditions = f'{self.questions.split_fields[0]}={step_number}' \
+    def select_question_from_db(self):
+        step_id = self.select_step_id_from_db()
+        style_id = self.select_style_id_from_db()
+        conditions = f'{self.questions.split_fields[0]}={step_id}' \
                      f'AND {self.questions.split_fields[1]}={style_id}'
         data = self.questions.select_in_table(self.questions.table_name,
-                                              self.questions.split_fields[2],
+                                              f"{self.questions.split_fields[2]},"
+                                              f"{self.questions.split_fields[4]}",
                                               conditions)
-        if step_number == 2:
-            sub_data = self.select_description_product(self.user_id)
-            return data[0][0] + sub_data
+        return data
 
-        elif step_number == 5:
-            sub_data = self.select_intermediate_data_about_cart(self.user_id)
-            return sub_data
-        elif step_number == 11:
-            data = self.select_final_data_about_cart(self.user_id)
-            return data
-        elif step_number == 911:
-            cart_id = self.select_tmp_cart_id()
-            data = self.select_final_data_about_cart(self.user_id, cart_id)
-            return data
-        elif step_number == 912:
-            cart_id = self.select_tmp_cart_id()
-            data = self.select_final_data_about_cart(self.user_id, cart_id)
-            return data
-        else:
-            return data[0][0]
-
-    def select_dialog_from_db(self, step_number, style_id):
-        conditions = f'{self.dia.split_fields[0]}={step_number}' \
+    def select_dialog_from_db(self):
+        step_id = self.select_step_id_from_db()
+        style_id = self.select_style_id_from_db()
+        conditions = f'{self.dia.split_fields[0]}={step_id}' \
                      f'AND {self.dia.split_fields[1]}={style_id}'
         data = self.dia.select_in_table(self.dia.table_name,
                                         f'{self.dia.split_fields[2]}, '
@@ -85,8 +62,22 @@ class SelectorDataDb():
                                         conditions)
         return data
 
-    def select_pre_step_dialog(self, step_number, style_id, command):
-        conditions = f"{self.dia.split_fields[0]}={step_number} "\
+    def select_pre_question_id(self):
+        step_id = self.select_step_id_from_db()
+        style_id = self.select_style_id_from_db()
+        conditions = f'{self.questions.split_fields[0]}={step_id}' \
+                     f'AND {self.questions.split_fields[1]}={style_id}'
+        data = self.questions.select_in_table(self.questions.table_name,
+                                              f'{self.questions.split_fields[3]}',
+                                              conditions)
+        return data[0][0]
+
+    def select_pre_step_dialog(self, step_id, command, style=None):
+        if style != 0:
+            style_id = self.select_style_id_from_db()
+        else:
+            style_id = style
+        conditions = f"{self.dia.split_fields[0]}={step_id} "\
                      f"AND {self.dia.split_fields[1]}={style_id} "\
                      f"AND {self.dia.split_fields[3]}='{command}'"
         data = self.dia.select_in_table(self.dia.table_name,
@@ -94,7 +85,8 @@ class SelectorDataDb():
                                         conditions)
         if data:
             return data[0][0]
-        else: return None
+        else:
+            return None
 
     def select_emoji_for_dialog(self, step_number, style_id):
         conditions = f"{self.emj.split_fields[0]}={step_number}" \
@@ -108,7 +100,8 @@ class SelectorDataDb():
         else:
             return None
 
-    def check_black_list_about_customer(self, chat_id):
+    def check_black_list_about_customer(self):
+        chat_id = self.message.chat.id
         conditions = f"{self.customer.split_fields[0]}={chat_id}"
         data = self.customer.select_in_table(self.customer.table_name,
                                              f'{self.customer.split_fields[3]}',
@@ -233,6 +226,3 @@ class SelectorDataDb():
         data = self.admin.select_in_table(self.admin.table_name,
                                           self.admin.split_fields[1])
         return data[0][0]
-
-if __name__ == '__main__':
-    pass
