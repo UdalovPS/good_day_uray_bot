@@ -15,6 +15,8 @@ class SelectorDataDb():
         self.cart = Cart()
         self.status = StatusTable()
         self.admin = AdminTable()
+        self.deliv = DeliveryPriceTable()
+        self.scores = Scores()
 
     def select_step_id_from_db(self):
         chat_id = self.message.chat.id
@@ -67,9 +69,11 @@ class SelectorDataDb():
         style_id = self.select_style_id_from_db()
         conditions = f'{self.questions.split_fields[0]}={step_id}' \
                      f'AND {self.questions.split_fields[1]}={style_id}'
+        print('Conditions', conditions)
         data = self.questions.select_in_table(self.questions.table_name,
                                               f'{self.questions.split_fields[3]}',
                                               conditions)
+        print('Data', data)
         return data[0][0]
 
     def select_pre_step_dialog(self, step_id, command, style=None):
@@ -95,8 +99,6 @@ class SelectorDataDb():
                                           self.steps.split_fields[3],
                                           conditions
                                           )
-        # print('CONDITIONS', conditions)
-        # print('STICKER ID', data)
         if data:
             return data[0][0]
         else:
@@ -114,15 +116,18 @@ class SelectorDataDb():
         else:
             return None
 
-    def select_description_product(self, chat_id):
-        product_id = self.select_product_id(chat_id)
+    def select_description_and_price_product(self):
+        # chat_id = self.message.chat.id
+        product_id = self.select_product_id()
         conditions = f'{self.prod.split_fields[0]}={product_id}'
         data = self.prod.select_in_table(self.prod.table_name,
-                                         self.prod.split_fields[2],
+                                         f"{self.prod.split_fields[2]},"
+                                         f"{self.prod.split_fields[3]}",
                                          conditions)
-        return data[0][0]
+        return data[0]
 
-    def select_product_id(self, chat_id):
+    def select_product_id(self):
+        chat_id = self.message.chat.id
         cart_prod_id = self.select_last_cart_product_id(chat_id)
         conditions = f'{self.cart_prod.split_fields[0]}={cart_prod_id}'
         data = self.cart_prod.select_in_table(self.cart_prod.table_name,
@@ -147,11 +152,9 @@ class SelectorDataDb():
         print(data[0][0])
         return data[0][0]
 
-    def select_intermediate_data_about_cart(self, chat_id, cart_number=None):
-        if not cart_number:
-            cart_id = self.select_last_cart_id(chat_id)
-        else:
-            cart_id = cart_number
+    def select_intermediate_data_about_cart(self):
+        chat_id = self.message.chat.id
+        cart_id = self.select_last_cart_id(chat_id)
         conditions = f'{self.cart_prod.split_fields[2]}={self.prod.split_fields[0]} AND' \
                      f' {self.cart_prod.split_fields[1]}={cart_id} AND' \
                      f' {self.cart_prod.split_fields[5]}=1'
@@ -170,7 +173,8 @@ class SelectorDataDb():
             i += 1
         return data
 
-    def select_final_data_about_cart(self, chat_id, cart_id=None):
+    def select_final_data_about_cart(self, cart_id=None):
+        chat_id = self.message.chat.id
         if not cart_id:
             products = self.select_intermediate_data_about_cart(chat_id)
             customer_cart_data = self.select_data_about_customer_and_about_cart(chat_id)
@@ -180,13 +184,14 @@ class SelectorDataDb():
         data_list = [customer_cart_data[0], products]
         return data_list
 
-    def select_data_about_customer_and_about_cart(self, chat_id, cart_number=None):
-        if not cart_number:
-            cart_id = self.select_last_cart_id(chat_id)
-        else:
+    def select_data_about_customer_and_about_cart(self, cart_number=None):
+        chat_id = self.message.chat.id
+        if cart_number:
             cart_id = cart_number
+        else:
+            cart_id = self.select_last_cart_id(chat_id)
         fields = f'cart_table.id, user_id, mode, name, phone, address, customer_time, ' \
-                 f'status, date, time'
+                 f'status, date, time, price_before_scores, final_price'
         main_table = 'cart_table'
         sub_table_1 = 'date_time_place_table'
         sub_table_2 = 'customer_table'
@@ -194,15 +199,10 @@ class SelectorDataDb():
         conditions_2 = f"customer_table.id = user_id"
         data = self.cart.three_table_join_in_table(main_table, sub_table_1, sub_table_2,
                                                    fields, conditions_1, conditions_2)
-        return data
+        return data[0]
 
-    def select_status_description(self, chat_id, cart_number=None):
-        if cart_number:
-            cart_id = cart_number
-        else:
-            cart_id = self.select_last_cart_id(chat_id)
-        cart_status = self.select_status_number_of_cart(cart_id)
-        conditions = f'{self.status.split_fields[0]}={cart_status}'
+    def select_status_description(self, status_id):
+        conditions = f'{self.status.split_fields[0]}={status_id}'
         data = self.status.select_in_table(self.status.table_name,
                                            self.status.split_fields[1],
                                            conditions
@@ -227,4 +227,25 @@ class SelectorDataDb():
     def select_tmp_cart_id(self):
         data = self.admin.select_in_table(self.admin.table_name,
                                           self.admin.split_fields[1])
+        return data[0][0]
+
+
+    def select_data_from_delivery_price_table(self):
+        data = self.deliv.select_in_table(self.deliv.table_name,
+                                          self.deliv.fields)
+        return data[0]
+
+    def select_price_before_scores(self):
+        cart_id = self.select_last_cart_id(self.message.chat.id)
+        conditions = f"{self.cart.split_fields[0]}={cart_id}"
+        data = self.cart.select_in_table(self.cart.table_name,
+                                         self.cart.split_fields[3],
+                                         conditions)
+        return data[0][0]
+
+    def select_personal_scores(self, chat_id):
+        conditions = f"{self.scores.split_fields[0]}={chat_id}"
+        data = self.scores.select_in_table(self.scores.table_name,
+                                           self.scores.split_fields[1],
+                                           conditions)
         return data[0][0]

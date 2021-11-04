@@ -189,10 +189,12 @@ class Cart(DatabasePSQL):
     def __init__(self):
         super(Cart, self).__init__()
         self.table_name = 'cart_table'
-        self.fields_with_parameters = "id           SERIAL PRIMARY KEY," \
-                                      "user_id      INTEGER," \
-                                      "status       INTEGER"
-        self.fields = 'id, user_id, status'
+        self.fields_with_parameters = "id                   SERIAL PRIMARY KEY," \
+                                      "user_id              INTEGER," \
+                                      "status               INTEGER," \
+                                      "price_before_scores  INTEGER," \
+                                      "final_price          INTEGER"
+        self.fields = 'id, user_id, status, price_before_scores, final_price'
         self.split_fields = self.fields.split(', ')
 
 
@@ -278,6 +280,16 @@ class TmpScores(DatabasePSQL):
         self.fields = 'customer_id, value'
         self.split_fields = self.fields.split(', ')
 
+
+class DeliveryPriceTable(DatabasePSQL):
+    def __init__(self):
+        super(DeliveryPriceTable, self).__init__()
+        self.table_name = 'delivery_price_table'
+        self.fields_with_parameters = "delivery_price    INTEGER," \
+                                      "delivery_limit    INTEGER "
+        self.fields = 'delivery_price, delivery_limit'
+        self.split_fields = self.fields.split(', ')
+
 class StatusTable(DatabasePSQL):
     def __init__(self):
         super(StatusTable, self).__init__()
@@ -297,9 +309,11 @@ class AdminTable(DatabasePSQL):
         self.fields = 'password, tmp_cart_id'
         self.split_fields = self.fields.split(', ')
 
+
+
 if __name__ == '__main__':
     pass
-    db = CartProduct()
+    db = DateTimePlace()
     db.drop_table(db.table_name)
     db.create_table(db.table_name, db.fields_with_parameters)
     # statuses = ((0, 'Формируется'), (1, 'Сформирован'),

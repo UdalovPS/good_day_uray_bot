@@ -4,11 +4,12 @@ from datetime import date, datetime
 
 
 class CommandHandler(SelectorDataDb):
-    def __init__(self, commands, message) -> None:
+    def __init__(self, commands, message, sub_text=None) -> None:
         self.message = message
         self.chat_id = message.chat.id
         self.message_text = message.text
         self.message_id = message.message_id
+        self.sub_text = sub_text
         self.commands = commands.split(',')
 
         self.steps = StepTable()
@@ -20,6 +21,7 @@ class CommandHandler(SelectorDataDb):
         self.wishes = Additional()
         self.date_place = DateTimePlace()
         self.admin = AdminTable()
+        self.scores = Scores()
 
         self.command_parser()
 
@@ -37,9 +39,28 @@ class CommandHandler(SelectorDataDb):
 
         20 - is commands for work with <cart_product_table>;
         20 000 - insert new row in cart_product_table;
+        21 000 - update wishes in cart_product_table;
+        22 000 - update count in cart_product_table;
 
-        30 - is commands for work with <cart_table>;
+        30 - is commands for work with <cart_table> and <date_time_place_table>;
         30 000 - insert new row in cart_table;
+        31 000 - insert new row in date_time_place_table;
+        32 000 - update delivery mod;
+        33 000 - update delivery address;
+        34 000 - update customer time;
+        35 000 - update price_before_scores in cart_table;
+        36 000 - add delivery price to price_before_scores;
+        37 000 - update final price in cart_table;
+        38 000 - update cart_status in cart_table;
+
+        40 - is commands for work with <customer_table>;
+        40 000 - insert new customer if not exists;
+        41 000 - update customer name;
+        42 000 - update customer phone number;
+
+        50 - is commands for work with <scores_table> and <tmp_scores_table>
+        50 000 - insert new row in scores_table;
+        51 000 - realise scores;
         """
         for command in self.commands:
             if command:
@@ -61,11 +82,39 @@ class CommandHandler(SelectorDataDb):
                 if cod == 16:
                     self.__delete_sticker_id_from_step_table(self.chat_id)
                 if cod == 20:
-                    # self.__delete_sticker_id_from_step_table(self.chat_id)
-                    pass
+                    self.__insert_new_row_in_product_cart_table(self.chat_id, value)
+                if cod == 21:
+                    self.__update_wishes_in_cart_product_table(self.chat_id, value)
+                if cod == 22:
+                    self.__update_product_count_in_cart_table(self.chat_id, self.message_text)
                 if cod == 30:
                     self.__insert_start_cart_data(self.chat_id)
-
+                if cod == 31:
+                    self.__insert_new_date_time_place_row(self.chat_id)
+                if cod == 32:
+                    self.__update_delivery_mode(self.chat_id, value)
+                if cod == 33:
+                    self.__update_delivery_address(self.chat_id)
+                if cod == 34:
+                    self.__update_customer_time(self.chat_id)
+                if cod == 35:
+                    self.__update_price_before_scores(self.chat_id)
+                if cod == 36:
+                    self.__add_delivery_price(self.chat_id, self.sub_text)
+                if cod == 37:
+                    self.__update_final_price(self.chat_id, SelectorDataDb(self.message).select_price_before_scores())
+                if cod == 38:
+                    self.__update_cart_status(self.__select_max_cart_id(self.chat_id), value)
+                if cod == 40:
+                    self.__insert_new_customer(self.chat_id)
+                if cod == 41:
+                    self.__update_customer_name(self.chat_id, self.message_text)
+                if cod == 42:
+                    self.__update_phone_number(self.chat_id, self.message_text)
+                if cod == 50:
+                    self.__insert_new_row_in_scores_table(self.chat_id)
+                if cod == 51:
+                    self.__realise_scores_for_cart(self.chat_id)
 
     def __delete_data_from_step_id(self, chat_id) -> None:
         conditions = f'{self.steps.split_fields[0]}={chat_id}'
@@ -119,3 +168,149 @@ class CommandHandler(SelectorDataDb):
         self.steps.update_fields(self.steps.table_name, field_value,
                                  conditions
                                  )
+
+    def __select_max_cart_id(self, chat_id) -> None:
+        conditions = f'{self.cart.split_fields[1]}={chat_id}'
+        data = self.cart.select_in_table(self.cart.table_name,
+                                         f'MAX({self.cart.split_fields[0]})',
+                                         conditions)
+        return data[0][0]
+
+    def __insert_new_row_in_product_cart_table(self, chat_id, value) -> None:
+        last_cart_id = self.__select_max_cart_id(chat_id)
+        self.cart_prod.insert_data_in_table(self.cart_prod.table_name,
+                                            f'{self.cart_prod.split_fields[1]},'
+                                            f'{self.cart_prod.split_fields[2]},'
+                                            f'{self.cart_prod.split_fields[5]}',
+                                            f'({last_cart_id}, {value}, 0)')
+
+    def __update_wishes_in_cart_product_table(self, chat_id, value) -> None:
+        wishes_name = self.__select_wishes_name_from_additional_table(value)
+        cart_product_id = self.select_last_cart_product_id(chat_id)
+        conditions = f'{self.cart_prod.split_fields[0]}={cart_product_id}'
+        field_value = f"{self.cart_prod.split_fields[4]}='{wishes_name}'"
+        self.cart_prod.update_fields(self.cart_prod.table_name,
+                                     field_value, conditions
+                                     )
+
+    def __select_wishes_name_from_additional_table(self, wishes_id) -> None:
+        conditions = f'{self.wishes.split_fields[0]}={wishes_id}'
+        data = self.wishes.select_in_table(self.wishes.table_name,
+                                           self.wishes.split_fields[1],
+                                           conditions)
+        return data[0][0]
+
+    def __update_product_count_in_cart_table(self, chat_id, value) -> None:
+        cart_product_id = self.select_last_cart_product_id(chat_id)
+        conditions = f'{self.cart_prod.split_fields[0]}={cart_product_id}'
+        field_value = f"{self.cart_prod.split_fields[3]}={value}," \
+                      f"{self.cart_prod.split_fields[5]}=1"
+        self.cart_prod.update_fields(self.cart_prod.table_name,
+                                     field_value, conditions
+                                     )
+
+    def __insert_new_customer(self, chat_id) -> None:
+        self.customer.insert_data_in_table(self.customer.table_name,
+                                           f'{self.cart.split_fields[0]},'
+                                           f'{self.customer.split_fields[3]}',
+                                           f'({chat_id}, 1)'
+                                           )
+
+    def __update_customer_name(self, chat_id, value) -> None:
+        conditions = f'{self.customer.split_fields[0]}={chat_id}'
+        field_value = f"{self.customer.split_fields[1]}='{value}'"
+        self.customer.update_fields(self.customer.table_name,
+                                    field_value, conditions)
+
+
+    def __update_phone_number(self, chat_id, value) -> None:
+        conditions = f'{self.customer.split_fields[0]}={chat_id}'
+        field_value = f"{self.customer.split_fields[2]}='{value}'"
+        self.customer.update_fields(self.customer.table_name,
+                                    field_value, conditions)
+
+    def __update_delivery_mode(self, chat_id, value) -> None:
+        cart_id = self.__select_max_cart_id(chat_id)
+        date_now = date.today()
+        time_now = datetime.now().time()
+        conditions = f'{self.date_place.split_fields[0]}={cart_id}'
+        field_value = f"{self.date_place.split_fields[1]}='{date_now}'," \
+                      f"{self.date_place.split_fields[2]}='{time_now}'," \
+                      f"{self.date_place.split_fields[3]}={value}"
+        self.date_place.update_fields(self.date_place.table_name,
+                                      field_value, conditions)
+
+    def __insert_new_date_time_place_row(self, chat_id) -> None:
+        cart_id = self.__select_max_cart_id(chat_id)
+        self.cart.insert_data_in_table(self.date_place.table_name,
+                                       f'{self.date_place.split_fields[0]}',
+                                       f'({cart_id})'
+                                       )
+
+    def __update_price_before_scores(self, chat_id) -> None:
+        cart_id = self.__select_max_cart_id(chat_id)
+        money_sum = 0
+        list_data = SelectorDataDb(self.message).select_intermediate_data_about_cart()
+        for item in list_data:
+            money_sum += item[3]
+        field_value = f"{self.cart.split_fields[3]}={money_sum}"
+        conditions = f"{self.cart.split_fields[0]}={cart_id}"
+        self.cart.update_fields(self.cart.table_name,
+                                field_value, conditions)
+
+    def __add_delivery_price(self, chat_id, value) -> None:
+        cart_id = self.__select_max_cart_id(chat_id)
+        field_value = f"{self.cart.split_fields[3]}={value}"
+        conditions = f"{self.cart.split_fields[0]}={cart_id}"
+        self.cart.update_fields(self.cart.table_name,
+                                field_value, conditions)
+
+    def __update_delivery_address(self, chat_id) -> None:
+        cart_id = self.__select_max_cart_id(chat_id)
+        conditions = f'{self.date_place.split_fields[0]}={cart_id}'
+        field_value = f"{self.date_place.split_fields[4]}='{self.message_text}'"
+        self.date_place.update_fields(self.date_place.table_name,
+                                      field_value, conditions)
+
+    def __update_customer_time(self, chat_id) -> None:
+        cart_id = self.__select_max_cart_id(chat_id)
+        conditions = f'{self.date_place.split_fields[0]}={cart_id}'
+        field_value = f"{self.date_place.split_fields[5]}='{self.message_text}'"
+        self.date_place.update_fields(self.date_place.table_name,
+                                      field_value, conditions)
+
+
+    def __update_final_price(self, chat_id, value) -> None:
+        cart_id = self.__select_max_cart_id(chat_id)
+        conditions = f'{self.cart.split_fields[0]}={cart_id}'
+        field_value = f"{self.cart.split_fields[4]}={value}"
+        self.cart.update_fields(self.cart.table_name,
+                                field_value, conditions)
+
+    def __realise_scores_for_cart(self, chat_id) -> None:
+        # cart_id = self.__select_max_cart_id(chat_id)
+        scores = SelectorDataDb(self.message).select_personal_scores(chat_id)
+        price_before_scores = SelectorDataDb(self.message).select_price_before_scores()
+        if scores > price_before_scores:
+            self.__update_final_price(chat_id, 0)
+            self.__update_scores(chat_id, scores - price_before_scores)
+        else:
+            self.__update_scores(chat_id, 0)
+            self.__update_final_price(chat_id, price_before_scores - scores)
+
+    def __insert_new_row_in_scores_table(self, chat_id) -> None:
+        self.scores.insert_data_in_table(self.scores.table_name,
+                                         self.scores.fields,
+                                         f"({chat_id},0,10)")
+
+    def __update_scores(self, chat_id, value) -> None:
+        conditions = f"{self.scores.split_fields[0]}={chat_id}"
+        field_value = f"{self.scores.split_fields[1]}={value}"
+        self.scores.update_fields(self.scores.table_name,
+                                  field_value, conditions)
+
+    def __update_cart_status(self, cart_id, value):
+        conditions = f'{self.cart.split_fields[0]}={cart_id}'
+        field_value = f"{self.cart.split_fields[2]}={value}"
+        self.cart.update_fields(self.cart.table_name,
+                                field_value, conditions)

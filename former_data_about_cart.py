@@ -1,20 +1,17 @@
-from datetime import datetime, date
+from new_data_selector import SelectorDataDb
 
 class DataCartFormer():
-    async def form_data_to_products_message(self, data, start_phrase="Выбрано: "):
+    def form_data_to_products_message(self, data, start_phrase="Выбрано: "):
         product_message = f'{start_phrase}\n'
-        money_sum = 0
         for item in data:
             product_message += f'1){item[0]}\n'
             product_message += f'2){item[1]}\n'
             product_message += f'3)Количество: {item[2]}\n'
             product_message += f'4)Сумма: {item[3]} рублей\n'
             product_message += '.........................\n'
-            money_sum += item[3]
-        product_message += f'Итоговая сумма: {money_sum} рублей\n'
         return product_message
 
-    async def form_data_about_cart(self, data):
+    def form_data_about_cart(self, data):
         cart_id = data[0]
         user_id = data[1]
         mode = data[2]
@@ -37,15 +34,15 @@ class DataCartFormer():
                        f'Время готовности: <strong>{customer_time}</strong>\n'
         return cart_message
 
-    async def data_for_customer_about_cart(self, data, start_phrase, status):
+    def data_for_customer_about_cart(self, data, start_phrase, status):
         products_data_from_sql = data[1]
         cart_data_from_sql = data[0]
         status = f'Статус заказа: {status}\n'
-        products_data = await self.form_data_to_products_message(products_data_from_sql, start_phrase)
-        cart_data = await self.form_data_about_cart(cart_data_from_sql)
+        products_data = self.form_data_to_products_message(products_data_from_sql, start_phrase)
+        cart_data = self.form_data_about_cart(cart_data_from_sql)
         return cart_data + status + products_data
 
-    async def form_data_about_cart_for_personal(self, data):
+    def form_data_about_cart_for_personal(self, data):
         cart_id = data[0]
         user_id = data[1]
         mode = data[2]
@@ -70,13 +67,13 @@ class DataCartFormer():
                        f'Время готовности: <strong>{customer_time}</strong>\n'
         return cart_message
 
-    async def data_for_customer_about_cart_for_personal(self, data, start_phrase, status):
-        products_data_from_sql = data[1]
-        cart_data_from_sql = data[0]
-        status = f'Статус заказа: {status}\n'
-        products_data = await self.form_data_to_products_message(products_data_from_sql, start_phrase)
-        cart_data = await self.form_data_about_cart_for_personal(cart_data_from_sql)
-        return cart_data + status + products_data
+    # def data_for_customer_about_cart_for_personal(self, data, start_phrase, status):
+    #     products_data_from_sql = data[1]
+    #     cart_data_from_sql = data[0]
+    #     status = f'Статус заказа: {status}\n'
+    #     products_data = self.form_data_to_products_message(products_data_from_sql, start_phrase)
+    #     cart_data = self.form_data_about_cart_for_personal(cart_data_from_sql)
+    #     return cart_data + status + products_data
 
 
 
