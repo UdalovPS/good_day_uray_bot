@@ -37,7 +37,7 @@ class DataCartFormer():
     def data_for_customer_about_cart(self, data, start_phrase, status):
         products_data_from_sql = data[1]
         cart_data_from_sql = data[0]
-        status = f'Статус заказа: {status}\n'
+        status = f'Статус заказа: <strong>{status}</strong>\n'
         products_data = self.form_data_to_products_message(products_data_from_sql, start_phrase)
         cart_data = self.form_data_about_cart(cart_data_from_sql)
         return cart_data + status + products_data
@@ -67,13 +67,13 @@ class DataCartFormer():
                        f'Время готовности: <strong>{customer_time}</strong>\n'
         return cart_message
 
-    # def data_for_customer_about_cart_for_personal(self, data, start_phrase, status):
-    #     products_data_from_sql = data[1]
-    #     cart_data_from_sql = data[0]
-    #     status = f'Статус заказа: {status}\n'
-    #     products_data = self.form_data_to_products_message(products_data_from_sql, start_phrase)
-    #     cart_data = self.form_data_about_cart_for_personal(cart_data_from_sql)
-    #     return cart_data + status + products_data
+    def data_for_customer_about_cart_for_personal(self, data, start_phrase, status):
+        products_data_from_sql = data[1]
+        cart_data_from_sql = data[0]
+        status = f'Статус заказа: <strong>{status}</strong>\n'
+        products_data = self.form_data_to_products_message(products_data_from_sql, start_phrase)
+        cart_data = self.form_data_about_cart_for_personal(cart_data_from_sql)
+        return cart_data + status + products_data
 
 
 

@@ -22,6 +22,8 @@ class CommandHandler(SelectorDataDb):
         self.date_place = DateTimePlace()
         self.admin = AdminTable()
         self.scores = Scores()
+        self.tmp_sc = TmpScores()
+        self.tmp_cart = TmpCustomerCartTable()
 
         self.command_parser()
 
@@ -41,6 +43,7 @@ class CommandHandler(SelectorDataDb):
         20 000 - insert new row in cart_product_table;
         21 000 - update wishes in cart_product_table;
         22 000 - update count in cart_product_table;
+        23 000 - delete garbage;
 
         30 - is commands for work with <cart_table> and <date_time_place_table>;
         30 000 - insert new row in cart_table;
@@ -52,6 +55,7 @@ class CommandHandler(SelectorDataDb):
         36 000 - add delivery price to price_before_scores;
         37 000 - update final price in cart_table;
         38 000 - update cart_status in cart_table;
+        39 000 - update message_id in cart_table;
 
         40 - is commands for work with <customer_table>;
         40 000 - insert new customer if not exists;
@@ -61,6 +65,12 @@ class CommandHandler(SelectorDataDb):
         50 - is commands for work with <scores_table> and <tmp_scores_table>
         50 000 - insert new row in scores_table;
         51 000 - realise scores;
+        52 000 - insert new row in tmp_scores_table;
+
+        60 - is commands for work with status of carts;
+        60 000 - insert new row in tmp_cart_customer_table;
+        61 000 - update cart_status;
+
         """
         for command in self.commands:
             if command:
@@ -87,6 +97,8 @@ class CommandHandler(SelectorDataDb):
                     self.__update_wishes_in_cart_product_table(self.chat_id, value)
                 if cod == 22:
                     self.__update_product_count_in_cart_table(self.chat_id, self.message_text)
+                if cod == 23:
+                    self.__delete_garbage_from_db(self.chat_id)
                 if cod == 30:
                     self.__insert_start_cart_data(self.chat_id)
                 if cod == 31:
@@ -105,6 +117,8 @@ class CommandHandler(SelectorDataDb):
                     self.__update_final_price(self.chat_id, SelectorDataDb(self.message).select_price_before_scores())
                 if cod == 38:
                     self.__update_cart_status(self.__select_max_cart_id(self.chat_id), value)
+                if cod == 39:
+                    self.__update_message_id_in_step_table(self.chat_id)
                 if cod == 40:
                     self.__insert_new_customer(self.chat_id)
                 if cod == 41:
@@ -115,6 +129,12 @@ class CommandHandler(SelectorDataDb):
                     self.__insert_new_row_in_scores_table(self.chat_id)
                 if cod == 51:
                     self.__realise_scores_for_cart(self.chat_id)
+                if cod == 52:
+                    self.__insert_new_row_in_tmp_scores_table(self.chat_id)
+                if cod == 60:
+                    self.__add_new_row_in_tmp_customer_cart_table(self.chat_id, self.message_text)
+                if cod == 61:
+                    self.__update_cart_status(self.sub_text, value)
 
     def __delete_data_from_step_id(self, chat_id) -> None:
         conditions = f'{self.steps.split_fields[0]}={chat_id}'
@@ -122,7 +142,7 @@ class CommandHandler(SelectorDataDb):
 
     def __insert_zero_step_and_style(self, chat_id) -> None:
         self.steps.insert_data_in_table(self.steps.table_name, self.steps.fields,
-                                        f'({chat_id},0,0,0)'
+                                        f'({chat_id},0,0,0,0)'
                                         )
 
     def __change_style_id(self, value, chat_id) -> None:
@@ -288,7 +308,6 @@ class CommandHandler(SelectorDataDb):
                                 field_value, conditions)
 
     def __realise_scores_for_cart(self, chat_id) -> None:
-        # cart_id = self.__select_max_cart_id(chat_id)
         scores = SelectorDataDb(self.message).select_personal_scores(chat_id)
         price_before_scores = SelectorDataDb(self.message).select_price_before_scores()
         if scores > price_before_scores:
@@ -309,8 +328,39 @@ class CommandHandler(SelectorDataDb):
         self.scores.update_fields(self.scores.table_name,
                                   field_value, conditions)
 
-    def __update_cart_status(self, cart_id, value):
+    def __update_cart_status(self, cart_id, value) -> None:
         conditions = f'{self.cart.split_fields[0]}={cart_id}'
         field_value = f"{self.cart.split_fields[2]}={value}"
         self.cart.update_fields(self.cart.table_name,
                                 field_value, conditions)
+
+    def __insert_new_row_in_tmp_scores_table(self, chat_id) -> None:
+        cart_id = self.__select_max_cart_id(chat_id)
+        db = SelectorDataDb(self.message)
+        percent = db.select_scores_percent(chat_id)
+        tmp_price = db.select_price_before_scores()
+        value = percent * tmp_price / 100
+        self.tmp_sc.insert_data_in_table(self.tmp_sc.table_name,
+                                         self.tmp_sc.fields,
+                                         f"({chat_id},{value},{cart_id})")
+
+    def __update_message_id_in_step_table(self, chat_id) -> None:
+        field_value = f"{self.steps.split_fields[4]}={self.message_id}"
+        conditions = f"{self.steps.split_fields[0]}={chat_id}"
+        self.steps.update_fields(self.steps.table_name,
+                                 field_value, conditions)
+
+    def __delete_garbage_from_db(self, chat_id):
+        cart_id = self.__select_max_cart_id(chat_id)
+        cart_conditions = f'{self.cart.split_fields[2]}=0 AND {self.cart.split_fields[1]}={chat_id}'
+        cart_prod_conditions = f'{self.cart_prod.split_fields[1]}={cart_id} AND {self.cart_prod.split_fields[5]}=0'
+        self.cart_prod.delete_data_from_table(self.cart_prod.table_name, cart_prod_conditions)
+        self.cart.delete_data_from_table(self.cart.table_name, cart_conditions)
+
+    def __add_new_row_in_tmp_customer_cart_table(self, chat_id, cart_id):
+        conditions = f"{self.tmp_cart.split_fields[0]}={chat_id}"
+        self.tmp_cart.delete_data_from_table(self.tmp_cart.table_name,
+                                             conditions)
+        self.tmp_cart.insert_data_in_table(self.tmp_cart.table_name,
+                                           self.tmp_cart.fields,
+                                           f"({chat_id}, {cart_id})")

@@ -17,6 +17,8 @@ class SelectorDataDb():
         self.admin = AdminTable()
         self.deliv = DeliveryPriceTable()
         self.scores = Scores()
+        self.tmp_sc = TmpScores()
+        self.tmp_cart = TmpCustomerCartTable()
 
     def select_step_id_from_db(self):
         chat_id = self.message.chat.id
@@ -152,9 +154,12 @@ class SelectorDataDb():
         print(data[0][0])
         return data[0][0]
 
-    def select_intermediate_data_about_cart(self):
+    def select_intermediate_data_about_cart(self, input_cart_id=None):
         chat_id = self.message.chat.id
-        cart_id = self.select_last_cart_id(chat_id)
+        if input_cart_id:
+            cart_id = input_cart_id
+        else:
+            cart_id = self.select_last_cart_id(chat_id)
         conditions = f'{self.cart_prod.split_fields[2]}={self.prod.split_fields[0]} AND' \
                      f' {self.cart_prod.split_fields[1]}={cart_id} AND' \
                      f' {self.cart_prod.split_fields[5]}=1'
@@ -235,7 +240,7 @@ class SelectorDataDb():
                                           self.deliv.fields)
         return data[0]
 
-    def select_price_before_scores(self):
+    def select_price_before_scores(self) -> int:
         cart_id = self.select_last_cart_id(self.message.chat.id)
         conditions = f"{self.cart.split_fields[0]}={cart_id}"
         data = self.cart.select_in_table(self.cart.table_name,
@@ -243,9 +248,62 @@ class SelectorDataDb():
                                          conditions)
         return data[0][0]
 
-    def select_personal_scores(self, chat_id):
+    def select_personal_scores(self, chat_id) -> int:
         conditions = f"{self.scores.split_fields[0]}={chat_id}"
         data = self.scores.select_in_table(self.scores.table_name,
                                            self.scores.split_fields[1],
                                            conditions)
         return data[0][0]
+
+    def select_scores_percent(self, chat_id) -> int:
+        conditions = f"{self.scores.split_fields[0]}={chat_id}"
+        data = self.scores.select_in_table(self.scores.table_name,
+                                           self.scores.split_fields[2],
+                                           conditions)
+        return data[0][0]
+
+    def select_price_after_scores(self, cart_number=None) -> int:
+        if cart_number:
+            cart_id = cart_number
+        else:
+            cart_id = self.select_last_cart_id(self.message.chat.id)
+        conditions = f"{self.cart.split_fields[0]}={cart_id}"
+        data = self.cart.select_in_table(self.cart.table_name,
+                                         self.cart.split_fields[4],
+                                         conditions)
+        return data[0][0]
+
+    def select_tmp_scores(self, chat_id, cart_id) -> int:
+        conditions = f"{self.tmp_sc.split_fields[0]}={chat_id} AND {self.tmp_sc.split_fields[2]}={cart_id}"
+        data = self.tmp_sc.select_in_table(self.tmp_sc.table_name,
+                                           self.tmp_sc.split_fields[1],
+                                           conditions)
+        return data[0][0]
+
+    def select_message_id_from_step_table(self):
+        conditions = f"{self.steps.split_fields[0]}={self.message.chat.id}"
+        data = self.steps.select_in_table(self.steps.table_name,
+                                          self.steps.split_fields[4],
+                                          conditions)
+        return data[0][0]
+
+    def select_cart_id_to_number(self, number, chat_id=None):
+        if chat_id:
+            conditions = f"{self.cart.split_fields[0]}={number} AND {self.cart.split_fields[1]}={chat_id}"
+        else:
+            conditions = f"{self.cart.split_fields[0]}={number}"
+        data = self.cart.select_in_table(self.cart.table_name,
+                                         self.cart.split_fields[0],
+                                         conditions)
+        if data:
+            return data[0][0]
+        else:
+            return None
+
+    def select_tmp_cart_id_for_cancel_command(self):
+        conditions = f"{self.tmp_cart.split_fields[0]}={self.message.chat.id}"
+        data = self.tmp_cart.select_in_table(self.tmp_cart.table_name,
+                                             self.tmp_cart.split_fields[1],
+                                             conditions)
+        return data[0][0]
+

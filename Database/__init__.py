@@ -13,3 +13,4 @@ from .posgre_sql import TmpScores
 from .posgre_sql import StatusTable
 from .posgre_sql import AdminTable
 from .posgre_sql import DeliveryPriceTable
+from .posgre_sql import TmpCustomerCartTable

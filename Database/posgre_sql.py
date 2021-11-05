@@ -143,8 +143,9 @@ class StepTable(DatabasePSQL):
         self.fields_with_parameters = "user_id      INTEGER," \
                                       "step_id      INTEGER," \
                                       "style_id     INTEGER," \
-                                      "sticker_id   INTEGER"
-        self.fields = 'user_id, step_id, style_id, sticker_id'
+                                      "sticker_id   INTEGER," \
+                                      "message_id   INTEGER"
+        self.fields = 'user_id, step_id, style_id, sticker_id, message_id'
         self.split_fields = self.fields.split(', ')
 
 
@@ -274,10 +275,10 @@ class TmpScores(DatabasePSQL):
     def __init__(self):
         super(TmpScores, self).__init__()
         self.table_name = 'tmp_scores_table'
-        self.fields_with_parameters = "customer_id  INTEGER references customer_table(id)," \
+        self.fields_with_parameters = "customer_id  INTEGER references customer_table(id) ON DELETE CASCADE," \
                                       "value        INTEGER," \
                                       "cart_id      INTEGER references cart_table(id) ON DELETE CASCADE"
-        self.fields = 'customer_id, value'
+        self.fields = 'customer_id, value, cart_id'
         self.split_fields = self.fields.split(', ')
 
 
@@ -309,17 +310,24 @@ class AdminTable(DatabasePSQL):
         self.fields = 'password, tmp_cart_id'
         self.split_fields = self.fields.split(', ')
 
-
+class TmpCustomerCartTable(DatabasePSQL):
+    def __init__(self):
+        super(TmpCustomerCartTable, self).__init__()
+        self.table_name = 'tmp_customer_cart_table'
+        self.fields_with_parameters = 'chat_id  INTEGER PRIMARY KEY,' \
+                                      'cart_id  INTEGER'
+        self.fields = "chat_id, cart_id"
+        self.split_fields = self.fields.split(', ')
 
 if __name__ == '__main__':
     pass
-    db = DateTimePlace()
+    db = TmpCustomerCartTable()
     db.drop_table(db.table_name)
     db.create_table(db.table_name, db.fields_with_parameters)
     # statuses = ((0, 'Формируется'), (1, 'Сформирован'),
     #             (2, 'Принят'), (3, 'Готов к выдаче'),
     #             (4, 'Доставляется'), (5, 'Завершен'),
-    #             (10, 'Отменен'))
+    #             (10, 'Отменен покупателем'), (11, 'Отменен продавцом'))
     # for item in statuses:
     #     db.insert_data_in_table(db.table_name, db.fields, item)
     # db.insert_data_in_table(db.table_name, db.fields, (0, 1, 'Стандартный'))

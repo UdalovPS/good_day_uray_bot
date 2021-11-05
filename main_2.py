@@ -1,4 +1,5 @@
 import logging
+import aiogram
 from aiogram import Bot, Dispatcher, executor, types
 
 from config import ConfigTelebot
@@ -34,7 +35,8 @@ class MyBot:
         data = AnswerFactory().answer_to_back_inline_commands(call)
         keyboard = types.InlineKeyboardMarkup()
         KeyboardExtender(keyboard, data.dialogs_list.dialogs_list)
-        await bot.send_message(chat_id=data.chat_id, text=data.question.quest, reply_markup=keyboard)
+        msg = await bot.send_message(chat_id=data.chat_id, text=data.question.quest, reply_markup=keyboard)
+        AnswerFactory().update_message_id_in_step_table(msg)
         await bot.delete_message(call.message.chat.id, call.message.message_id)
         if data.question.sticker_msg_id != 0:
             await bot.delete_message(call.message.chat.id, data.question.sticker_msg_id)
@@ -43,18 +45,44 @@ class MyBot:
             sticker = await bot.send_sticker(chat_id=data.chat_id, sticker=data.question.sticker)
             AnswerFactory().update_sticker_id_in_step_table(sticker)
 
+    @dp.message_handler(commands='status')
+    async def start_status_dialogs(message: types.Message) -> None:
+        data = AnswerFactory().answer_to_status_message(message)
+        await bot.send_message(chat_id=data.chat_id, text=data.question.quest)
+
+    @dp.callback_query_handler(text='cancel')
+    async def cancel_cart(call: types.CallbackQuery) -> None:
+        data = AnswerFactory().cancel_cart_from_customer(call.message)
+        await bot.send_message(chat_id=data.chat_id, text=data.question.quest)
+        await bot.send_message(chat_id='-1001558221765', text=data.question.quest)
+        await bot.delete_message(chat_id=data.chat_id, message_id=call.message.message_id)
+
+    @dp.message_handler(commands='points')
+    async def check_customer_points(message: types.Message) -> None:
+        data = AnswerFactory().check_customer_points(message)
+        await bot.send_message(chat_id=data.chat_id, text=data.question.quest)
+
     @dp.callback_query_handler(text='end')
     async def end_cart_command(call: types.CallbackQuery) -> None:
-        data = AnswerFactory().answer_to_start_command(call.message)
-
+        data_for_customer = AnswerFactory().answer_to_end_command_to_customer(call.message)
+        data_for_personal = AnswerFactory().answer_to_end_command_to_personal(call.message)
+        await bot.delete_message(call.message.chat.id, call.message.message_id)
+        await bot.send_message(chat_id=data_for_customer.chat_id, text=data_for_customer.question.quest)
+        await bot.send_message(chat_id=data_for_personal.chat_id, text=data_for_personal.question.quest)
 
     @dp.message_handler(content_types='text')
     async def answer_to_text_message(message: types.Message):
         try:
             data = AnswerFactory().choice_answer_to_text_message(message)
+            msg_id = AnswerFactory().select_message_id_from_step_table(message)
             keyboard = types.InlineKeyboardMarkup()
             KeyboardExtender(keyboard, data.dialogs_list.dialogs_list)
-            await bot.send_message(chat_id=data.chat_id, text=data.question.quest, reply_markup=keyboard)
+            try:
+                await bot.edit_message_reply_markup(chat_id=data.chat_id, message_id=msg_id, reply_markup=None)
+            except Exception:
+                pass
+            msg = await bot.send_message(chat_id=data.chat_id, text=data.question.quest, reply_markup=keyboard)
+            AnswerFactory().update_message_id_in_step_table(msg)
             if data.question.sticker_msg_id != 0:
                 await bot.delete_message(message.chat.id, data.question.sticker_msg_id)
                 AnswerFactory().delete_sticker_id_in_step_table(message)
@@ -72,7 +100,8 @@ class MyBot:
         btn_customer_answer = AnswerFactory().pre_inline_btn_customer_answer(call)
         keyboard = types.InlineKeyboardMarkup()
         KeyboardExtender(keyboard, data.dialogs_list.dialogs_list)
-        await bot.send_message(chat_id=data.chat_id, text=data.question.quest, reply_markup=keyboard)
+        msg = await bot.send_message(chat_id=data.chat_id, text=data.question.quest, reply_markup=keyboard)
+        AnswerFactory().update_message_id_in_step_table(msg)
         await bot.edit_message_text(f"{pre_question.question.quest}\n<u>{btn_customer_answer.question.pre_answer}</u>",
                                     call.message.chat.id, call.message.message_id, reply_markup='')
         if data.question.sticker_msg_id != 0:

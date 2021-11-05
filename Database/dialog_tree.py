@@ -166,6 +166,13 @@ class Dialogs(DialogTree):
                               (('Завершить заказ', 'end', '\U00002705'),)
                               )
 
+        self.step_status = (500, 0, 'Введите номер заказа', 0, None,
+                            (('Отменить', 'cancel', '\U0000274C'),)
+                            )
+        self.step_cancel = (600, 0, 'Введите номер заказа', 0, None,
+                            (('Отменить', 'cancel', '\U0000274C'),)
+                            )
+
 class AdminDialogs(DialogTree):
     def __init__(self):
         super(AdminDialogs, self).__init__()
@@ -188,7 +195,7 @@ class AdminDialogs(DialogTree):
 if __name__ == '__main__':
     s0 = Dialogs()
     # s0 = AdminDialogs()
-    data = s0.step_ten_2
+    data = s0.step_status
     # if data[4] == None:
     #     s0.insert_question(data[0], data[1], data[2], data[3])
     # else:

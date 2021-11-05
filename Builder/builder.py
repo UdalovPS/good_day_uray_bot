@@ -75,7 +75,8 @@ class StandartDataForMessage(DataCreator):
         step_id = data.select_step_id_from_db()
         dialogs = DialogsList()
         self.add_objects_in_dialog_list(dialogs, data_dialogs)
-        if style_id == 0 or step_id == 4 or step_id == 5 or step_id == 6 or step_id == 7 or step_id == 9 or step_id == 10:
+        if style_id == 0:
+        # if style_id == 0 or step_id == 5 or step_id == 6 or step_id == 7 or step_id == 9 or step_id == 10:
             pass
         else:
             self.add_objects_in_dialog_list(dialogs, [('Назад', 'back', '\U0001F519')])
@@ -103,6 +104,67 @@ class BlackListData(DataCreator):
     def build_question(self) -> Question:
         quest = f"Извините, но вы находитесь в черном списке. За подробностями позвоните по телефону\n" \
                 f"Ваш уникальный номер: <strong>{self.message.chat.id}</strong>"
+        return Question(quest)
+
+    def build_dialog_list(self) -> DialogsList:
+        data = ()
+        dialogs = DialogsList()
+        self.add_objects_in_dialog_list(dialogs, data)
+        return dialogs
+
+    def add_objects_in_dialog_list(self, obj, dialogs) -> None:
+        for dialog in dialogs:
+            data = Dialogs(*dialog)
+            obj.add_obj_in_list(data)
+
+    def create_data_for_message(self):
+        chat_id = self.build_chat_id()
+        quest = self.build_question()
+        dialogs = self.build_dialog_list()
+        return DataForMessage(chat_id, quest, dialogs)
+
+
+class UnknowCommands(DataCreator):
+    def __init__(self, message):
+        self.message = message
+
+    def build_chat_id(self) -> int:
+        return self.message.chat.id
+
+    def build_question(self) -> Question:
+        quest = f"Для того чтобы сделать новый заказ отправьте: <strong>/заказ</strong>\n" \
+                f"Для того чтобы узнать статус заказа отправьте: <strong>/статус</strong>\n" \
+                f"Для того чтобы узнать кол-во баллов на вашем счету отправьте: <strong>/баллы</strong>\n" \
+                f"Для того чтобы отменить заказ отправьте: <strong>/отмена</strong>"
+        return Question(quest)
+
+    def build_dialog_list(self) -> DialogsList:
+        data = ()
+        dialogs = DialogsList()
+        self.add_objects_in_dialog_list(dialogs, data)
+        return dialogs
+
+    def add_objects_in_dialog_list(self, obj, dialogs) -> None:
+        for dialog in dialogs:
+            data = Dialogs(*dialog)
+            obj.add_obj_in_list(data)
+
+    def create_data_for_message(self):
+        chat_id = self.build_chat_id()
+        quest = self.build_question()
+        dialogs = self.build_dialog_list()
+        return DataForMessage(chat_id, quest, dialogs)
+
+
+class CartNoFoundMessage(DataCreator):
+    def __init__(self, message):
+        self.message = message
+
+    def build_chat_id(self) -> int:
+        return self.message.chat.id
+
+    def build_question(self) -> Question:
+        quest = f"Заказ по данному номеру не найден"
         return Question(quest)
 
     def build_dialog_list(self) -> DialogsList:
@@ -390,14 +452,14 @@ class DataAboutCustomerScores(DataCreator):
             stiker_id = db.select_sticker_id_from_db()
             return Question(quest, sticker_id=stiker_id)
         else:
-            CommandHandler('13012,', self.message)
+            CommandHandler('13012, 37000', self.message)
             list_data_db = db.select_intermediate_data_about_cart()
             customer_cart_data_db = db.select_data_about_customer_and_about_cart()
             cart_status = db.select_status_description(customer_cart_data_db[7])
             final_data = DataCartFormer().data_for_customer_about_cart([customer_cart_data_db, list_data_db],
                                                                        'Выбрано:', status=cart_status)
-            price_before_scores = db.select_price_before_scores()
-            data = final_data + f'Итоговая сумма: {price_before_scores} рублей\n'
+            price_after_scores = db.select_price_after_scores()
+            data = final_data + f'Итоговая сумма: {price_after_scores} рублей\n'
             stiker_id = db.select_sticker_id_from_db()
             return Question(data, sticker_id=stiker_id)
 
@@ -422,7 +484,7 @@ class DataAboutCustomerScores(DataCreator):
         return DataForMessage(chat_id, quest, dialogs)
 
 
-class FinalDataAboutCustomerScores(DataCreator):
+class FinalDataAboutCart(DataCreator):
     def __init__(self, message):
         self.message = message
 
@@ -436,8 +498,8 @@ class FinalDataAboutCustomerScores(DataCreator):
         cart_status = db.select_status_description(customer_cart_data_db[7])
         final_data = DataCartFormer().data_for_customer_about_cart([customer_cart_data_db, list_data_db],
                                                                    'Выбрано:', status=cart_status)
-        price_before_scores = db.select_price_before_scores()
-        data = final_data + f'Итоговая сумма: {price_before_scores} рублей\n'
+        price_after_scores = db.select_price_after_scores()
+        data = final_data + f'Итоговая сумма: {price_after_scores} рублей\n'
         stiker_id = db.select_sticker_id_from_db()
         return Question(data, sticker_id=stiker_id)
 
@@ -447,6 +509,159 @@ class FinalDataAboutCustomerScores(DataCreator):
         style_id = data.select_style_id_from_db()
         dialogs = DialogsList()
         self.add_objects_in_dialog_list(dialogs, data_dialogs)
+        return dialogs
+
+    def add_objects_in_dialog_list(self, obj, dialogs) -> None:
+        for dialog in dialogs:
+            data = Dialogs(*dialog)
+            obj.add_obj_in_list(data)
+
+    def create_data_for_message(self):
+        chat_id = self.build_chat_id()
+        quest = self.build_question()
+        dialogs = self.build_dialog_list()
+        return DataForMessage(chat_id, quest, dialogs)
+
+
+class FinalDataAboutCartAfterEnd(DataCreator):
+    def __init__(self, message):
+        self.message = message
+
+    def build_chat_id(self) -> int:
+        return self.message.chat.id
+
+    def build_question(self) -> Question:
+        db = SelectorDataDb(self.message)
+        list_data_db = db.select_intermediate_data_about_cart()
+        customer_cart_data_db = db.select_data_about_customer_and_about_cart()
+        cart_status = db.select_status_description(customer_cart_data_db[7])
+        final_data = DataCartFormer().data_for_customer_about_cart([customer_cart_data_db, list_data_db],
+                                                                   'Выбрано:', status=cart_status)
+        cart_id = db.select_last_cart_id(self.message.chat.id)
+        tmp_scores = db.select_tmp_scores(self.message.chat.id,
+                                          cart_id)
+        price_after_scores = db.select_price_after_scores()
+        data = final_data + f'Итоговая сумма: {price_after_scores} рублей\n'
+        data += f"После оплаты заказа вам будет начислены баллы: <strong>{tmp_scores}</strong>"
+        stiker_id = db.select_sticker_id_from_db()
+        return Question(data, sticker_id=stiker_id)
+
+    def build_dialog_list(self) -> DialogsList:
+        data = ()
+        dialogs = DialogsList()
+        self.add_objects_in_dialog_list(dialogs, data)
+        return dialogs
+
+    def add_objects_in_dialog_list(self, obj, dialogs) -> None:
+        for dialog in dialogs:
+            data = Dialogs(*dialog)
+            obj.add_obj_in_list(data)
+
+    def create_data_for_message(self):
+        chat_id = self.build_chat_id()
+        quest = self.build_question()
+        dialogs = self.build_dialog_list()
+        return DataForMessage(chat_id, quest, dialogs)
+
+
+class FinalDataAboutCartToPersonal(DataCreator):
+    def __init__(self, message):
+        self.message = message
+
+    def build_chat_id(self):
+        personal_channel = '-1001558221765'
+        return personal_channel
+
+    def build_question(self) -> Question:
+        db = SelectorDataDb(self.message)
+        list_data_db = db.select_intermediate_data_about_cart()
+        customer_cart_data_db = db.select_data_about_customer_and_about_cart()
+        cart_status = db.select_status_description(customer_cart_data_db[7])
+        final_data = DataCartFormer().data_for_customer_about_cart_for_personal([customer_cart_data_db, list_data_db],
+                                                                                'Выбрано:', status=cart_status)
+        price_after_scores = db.select_price_after_scores()
+        data = final_data + f'Итоговая сумма: {price_after_scores} рублей\n'
+        stiker_id = db.select_sticker_id_from_db()
+        return Question(data, sticker_id=stiker_id)
+
+    def build_dialog_list(self) -> DialogsList:
+        data = ()
+        dialogs = DialogsList()
+        self.add_objects_in_dialog_list(dialogs, data)
+        return dialogs
+
+    def add_objects_in_dialog_list(self, obj, dialogs) -> None:
+        for dialog in dialogs:
+            data = Dialogs(*dialog)
+            obj.add_obj_in_list(data)
+
+    def create_data_for_message(self):
+        chat_id = self.build_chat_id()
+        quest = self.build_question()
+        dialogs = self.build_dialog_list()
+        return DataForMessage(chat_id, quest, dialogs)
+
+
+class CartDataForStatus(DataCreator):
+    def __init__(self, message, cart_id, chat_id=None):
+        self.message = message
+        self.cart_id = cart_id
+        self.chat_id = chat_id
+
+    def build_chat_id(self) -> int:
+        return self.message.chat.id
+
+    def build_question(self) -> Question:
+        db = SelectorDataDb(self.message)
+        list_data_db = db.select_intermediate_data_about_cart(self.cart_id)
+        customer_cart_data_db = db.select_data_about_customer_and_about_cart(self.cart_id)
+        cart_status = db.select_status_description(customer_cart_data_db[7])
+        final_data = DataCartFormer().data_for_customer_about_cart([customer_cart_data_db, list_data_db],
+                                                                   'Выбрано:', status=cart_status)
+        price_after_scores = db.select_price_after_scores(self.cart_id)
+        data = final_data + f'Итоговая сумма: <strong>{price_after_scores}</strong> рублей\n'
+        stiker_id = db.select_sticker_id_from_db()
+        return Question(data, sticker_id=stiker_id)
+
+    def build_dialog_list(self) -> DialogsList:
+        data = SelectorDataDb(self.message)
+        data_dialogs = data.select_dialog_from_db()
+        style_id = data.select_style_id_from_db()
+        dialogs = DialogsList()
+        self.add_objects_in_dialog_list(dialogs, data_dialogs)
+        return dialogs
+
+    def add_objects_in_dialog_list(self, obj, dialogs) -> None:
+        for dialog in dialogs:
+            data = Dialogs(*dialog)
+            obj.add_obj_in_list(data)
+
+    def create_data_for_message(self):
+        chat_id = self.build_chat_id()
+        quest = self.build_question()
+        dialogs = self.build_dialog_list()
+        return DataForMessage(chat_id, quest, dialogs)
+
+
+class CheckCustomerPoints(DataCreator):
+    def __init__(self, message):
+        self.message = message
+
+    def build_chat_id(self) -> int:
+        return self.message.chat.id
+
+    def build_question(self) -> Question:
+        db = SelectorDataDb(self.message)
+        scores = db.select_personal_scores(self.message.chat.id)
+        percent = db.select_scores_percent(self.message.chat.id)
+        quest = f"Баллы в наличии: <strong>{scores}</strong>\n" \
+                f"Персональная скидка: <strong>{percent}%</strong>"
+        return Question(quest)
+
+    def build_dialog_list(self) -> DialogsList:
+        data = ()
+        dialogs = DialogsList()
+        self.add_objects_in_dialog_list(dialogs, data)
         return dialogs
 
     def add_objects_in_dialog_list(self, obj, dialogs) -> None:
@@ -482,7 +697,7 @@ class AnswerFactory:
         CommandHandler(call.data, call.message)
         cod_list = call.data.split(', ')
         if (int(cod_list[0][0:5])) % 1000 == 12:
-            data = CartDataForCustomer(call.message).create_data_for_message()
+            data = FinalDataAboutCart(call.message).create_data_for_message()
             return data
 
         if len(cod_list) > 1:
@@ -533,15 +748,18 @@ class AnswerFactory:
         step_id = SelectorDataDb(message).select_step_id_from_db()
         if step_id == 4:
             return self.answer_to_count_product_message(message)
-        if step_id == 6:
+        elif step_id == 6:
             return self.answer_to_customer_name_message(message)
-        if step_id == 7:
+        elif step_id == 7:
             return self.answer_to_customer_phone_message(message)
-        if step_id == 9:
+        elif step_id == 9:
             return self.answer_to_delivery_address_message(message)
-        if step_id == 10:
+        elif step_id == 10:
             return self.answer_to_customer_time_message(message)
-
+        elif step_id == 500:
+            return self.answer_to_status_number_from_customer(message)
+        else:
+            return UnknowCommands(message).create_data_for_message()
 
     def answer_to_count_product_message(self, message):
         """This is answer to count product message"""
@@ -582,11 +800,48 @@ class AnswerFactory:
         data = DataAboutCustomerScores(message).create_data_for_message()
         return data
 
-    def answer_to_end_command(self, message):
+    def answer_to_end_command_to_customer(self, message):
         """This is answer to end cart with one customer"""
-        CommandHandler('10000, 11000, 38001', message)
+        CommandHandler('10000, 11000, 38001, 52000, 23000', message)
+        data = FinalDataAboutCartAfterEnd(message).create_data_for_message()
+        return data
 
+    def answer_to_end_command_to_personal(self, message):
+        """This is answer to end cart with one customer to personal of shop"""
+        data = FinalDataAboutCartToPersonal(message).create_data_for_message()
+        return data
 
+    def update_message_id_in_step_table(self, message):
+        CommandHandler('39000,', message)
+
+    def select_message_id_from_step_table(self, message):
+        return SelectorDataDb(message).select_message_id_from_step_table()
+
+    def answer_to_status_message(self, message):
+        CommandHandler('13500, 12000', message)
+        data = StandartDataForMessage(message).create_data_for_message()
+        return data
+
+    def answer_to_status_number_from_customer(self, message):
+        db = SelectorDataDb(message)
+        cart_number = db.select_cart_id_to_number(message.text, message.chat.id)
+        if cart_number:
+            CommandHandler('60000,', message)
+            data = CartDataForStatus(message, cart_number).create_data_for_message()
+        else:
+            data = CartNoFoundMessage(message).create_data_for_message()
+        return data
+
+    def cancel_cart_from_customer(self, message):
+        db = SelectorDataDb(message)
+        cart_number = db.select_tmp_cart_id_for_cancel_command()
+        CommandHandler('61010,', message, cart_number)
+        data = CartDataForStatus(message, cart_number).create_data_for_message()
+        return data
+
+    def check_customer_points(self, message):
+        data = CheckCustomerPoints(message).create_data_for_message()
+        return data
 
 if __name__ == '__main__':
     pass
