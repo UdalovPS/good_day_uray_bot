@@ -1,206 +1,124 @@
 import logging
-from emoji import emojize
-from aiogram import Bot, Dispatcher, executor, types
+from aiogram import Bot, Dispatcher, executor, types, exceptions, utils
 
 from config import ConfigTelebot
-from command_handler import CommandHandler
-from Database.data_selector import SelectorDataDb
-from former_data_about_cart import DataCartFormer
+from Builder.builder import AnswerFactory
 
 bot = Bot(token=ConfigTelebot().api_token, parse_mode=types.ParseMode.HTML)
 dp = Dispatcher(bot)
 logging.basicConfig(level=logging.INFO)
 
-class MyBot():
-    async def add_cart_number_to_callback_data(self, data, keyboard, cart_number):
-        for dialog in data.dialogs:
-            if data.emoji:
-                keyboard.add(types.InlineKeyboardButton(text=(dialog[0] + emojize(data.emoji)),
-                                                        callback_data=dialog[1]))
-            else:
-                print('CART NUMBER', dialog[1] + f' {cart_number}')
-                keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]+f', {cart_number}'))
 
-    async def add_standart_dialogs_to_inline_keyboard(self, data, keyboard):
-        for dialog in data.dialogs:
-            if data.emoji:
-                keyboard.add(types.InlineKeyboardButton(text=(dialog[0] + emojize(data.emoji)),
-                                                        callback_data=dialog[1]))
-            else:
-                keyboard.add(types.InlineKeyboardButton(text=dialog[0], callback_data=dialog[1]))
+class MyBot:
+    @dp.message_handler(commands=['заказ', 'cart'])
+    async def start_message(message: types.Message) -> None:
+        data = AnswerFactory().answer_to_start_command(message)
+        keyboard = types.InlineKeyboardMarkup()
+        KeyboardExtender(keyboard, data.dialogs_list.dialogs_list)
+        await bot.send_message(chat_id=data.chat_id, text=data.question.quest, reply_markup=keyboard)
 
-    async def add_number_products(self, message):
+    @dp.callback_query_handler(text='back')
+    async def back_command(call: types.CallbackQuery) -> None:
+        data = AnswerFactory().answer_to_back_inline_commands(call)
+        keyboard = types.InlineKeyboardMarkup()
+        KeyboardExtender(keyboard, data.dialogs_list.dialogs_list)
+        msg = await bot.send_message(chat_id=data.chat_id, text=data.question.quest, reply_markup=keyboard)
+        AnswerFactory().update_message_id_in_step_table(msg)
+        await bot.delete_message(call.message.chat.id, call.message.message_id)
+        if data.question.sticker_msg_id != 0:
+            await bot.delete_message(call.message.chat.id, data.question.sticker_msg_id)
+            AnswerFactory().delete_sticker_id_in_step_table(call.message)
+        if data.question.sticker:
+            sticker = await bot.send_sticker(chat_id=data.chat_id, sticker=data.question.sticker)
+            AnswerFactory().update_sticker_id_in_step_table(sticker)
+
+    @dp.message_handler(commands='адм')
+    async def check_password(message: types.Message) -> None:
+        data = AnswerFactory().password_message(message)
+        await bot.send_message(chat_id=data.chat_id, text=data.question.quest)
+
+    @dp.message_handler(commands=['статус', 'status'])
+    async def start_status_dialogs(message: types.Message) -> None:
+        data = AnswerFactory().answer_to_status_message(message)
+        await bot.send_message(chat_id=data.chat_id, text=data.question.quest)
+
+    @dp.callback_query_handler(text='cancel')
+    async def cancel_cart(call: types.CallbackQuery) -> None:
+        data = AnswerFactory().cancel_cart_from_customer(call.message)
+        await bot.send_message(chat_id=data.chat_id, text=data.question.quest)
+        await bot.send_message(chat_id='-1001558221765', text=data.question.quest)
+        await bot.delete_message(chat_id=data.chat_id, message_id=call.message.message_id)
+
+    @dp.message_handler(commands=['баллы', 'points'])
+    async def check_customer_points(message: types.Message) -> None:
+        data = AnswerFactory().check_customer_points(message)
+        await bot.send_message(chat_id=data.chat_id, text=data.question.quest)
+
+    @dp.callback_query_handler(text='end')
+    async def end_cart_command(call: types.CallbackQuery) -> None:
+        data_for_customer = AnswerFactory().answer_to_end_command_to_customer(call.message)
+        data_for_personal = AnswerFactory().answer_to_end_command_to_personal(call.message)
+        await bot.delete_message(call.message.chat.id, call.message.message_id)
+        await bot.send_message(chat_id=data_for_customer.chat_id, text=data_for_customer.question.quest)
+        await bot.send_message(chat_id=data_for_personal.chat_id, text=data_for_personal.question.quest)
+
+    @dp.message_handler(content_types='text')
+    async def answer_to_text_message(message: types.Message):
         try:
-            count = int(message.text)
-            if count > 999:
-                await message.answer('Слишком большое число')
-            else:
-                command = 72000 + count
-                CommandHandler(f'40005, {str(command)}', message.chat.id)
-                data = SelectorDataDb(message.chat.id)
-                keyboard = types.InlineKeyboardMarkup()
-                await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
-                if not data.style_id == 0:
-                    keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
-                products_message = await DataCartFormer().form_data_to_products_message(data.quest, 'Ваш заказ: ')
-                await message.answer(products_message)
-                await message.answer('Желаете что-нибудь еще, или перейдем к оформлению заказа?', reply_markup=keyboard)
-                await bot.delete_message(message.chat.id, message.message_id)
+            data = AnswerFactory().choice_answer_to_text_message(message)
+            msg_id = AnswerFactory().select_message_id_from_step_table(message)
+            keyboard = types.InlineKeyboardMarkup()
+            KeyboardExtender(keyboard, data.dialogs_list.dialogs_list)
+            try:
+                await bot.edit_message_reply_markup(chat_id=data.chat_id, message_id=msg_id, reply_markup=None)
+            except (exceptions.MessageIdentifierNotSpecified, exceptions.MessageNotModified, exceptions.MessageToEditNotFound):
+                pass
+            finally:
+                msg = await bot.send_message(chat_id=data.chat_id, text=data.question.quest, reply_markup=keyboard)
+                AnswerFactory().update_message_id_in_step_table(msg)
+                if data.question.sticker_msg_id != 0 and data.question.sticker_msg_id != None:
+                    await bot.delete_message(message.chat.id, data.question.sticker_msg_id)
+                    AnswerFactory().delete_sticker_id_in_step_table(message)
+                if data.question.sticker:
+                    sticker = await bot.send_sticker(chat_id=data.chat_id, sticker=data.question.sticker)
+                    AnswerFactory().update_sticker_id_in_step_table(sticker)
         except ValueError:
             await message.answer('Неверно введено число')
 
-    async def update_customer_name(self, message):
-        CommandHandler('40007, 73000', message.chat.id, message.text)
-        data = SelectorDataDb(message.chat.id)
-        keyboard = types.InlineKeyboardMarkup()
-        await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
-        if not data.style_id == 0:
-            keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
-        await message.answer(data.quest, reply_markup=keyboard)
-        await bot.delete_message(message.chat.id, message.message_id)
-
-    async def update_phone_number(self, message):
-            CommandHandler('40008, 74000', message.chat.id, message.text)
-            data = SelectorDataDb(message.chat.id)
-            keyboard = types.InlineKeyboardMarkup()
-            await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
-            if not data.style_id == 0:
-                keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
-            await message.answer(data.quest, reply_markup=keyboard)
-            await bot.delete_message(message.chat.id, message.message_id)
-
-    async def update_delivery_or_custom_time_address(self, message, command):
-        CommandHandler(command, message.chat.id, message.text)                  #'40011, 62000'
-        data = SelectorDataDb(message.chat.id)
-        keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(types.InlineKeyboardButton(text='Завершить заказ', callback_data='end'))
-        keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
-        text_msg = await DataCartFormer().data_for_customer_about_cart(data.quest, 'Ваш заказ:', data.status_description)
-        await message.answer(text_msg, reply_markup=keyboard)
-
-    async def update_customer_time(self, message):
-        CommandHandler('40011, 63000', message.chat.id, message.text)
-        data = SelectorDataDb(message.chat.id)
-        keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(types.InlineKeyboardButton(text='Завершить заказ', callback_data='end'))
-        keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
-        text_msg = await DataCartFormer().data_for_customer_about_cart(data.quest, 'Ваш заказ:', data.status_description)
-        await message.answer(text_msg, reply_markup=keyboard)
-
-    async def check_admin_password(self, message):
-        admin_password = SelectorDataDb(message.chat.id).select_admin_password()
-        try:
-            if admin_password == int(message.text):
-                CommandHandler('40901,', message.chat.id)
-                data = SelectorDataDb(message.chat.id)
-                keyboard = types.InlineKeyboardMarkup()
-                await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
-                await message.answer(data.quest, reply_markup=keyboard)
-            else:
-                await message.answer('Неверный код. Ошибка доступа!')
-        except ValueError:
-            await message.answer('Неверный код. Ошибка доступа!')
-
-    async def check_cart_to_number(self, message):
-        try:
-            CommandHandler('40911, 92000', message.chat.id, int(message.text))
-            data = SelectorDataDb(message.chat.id)
-            keyboard = types.InlineKeyboardMarkup()
-            await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
-            personal_msg = await DataCartFormer().data_for_customer_about_cart_for_personal(data.quest,
-                                                                                            'Ваш заказ:',
-                                                                                            data.select_status_description(message.chat.id,
-                                                                                                                           data.select_tmp_cart_id()))
-            await message.answer(personal_msg, reply_markup=keyboard)
-        except ValueError or IndexError:
-            await message.answer('Данные по заказу отсутствуют')
-
-    @dp.callback_query_handler(text='end')
-    async def end_cart_with_user(call: types.CallbackQuery):
-        CommandHandler('90001, 91000', call.message.chat.id)
-        data = SelectorDataDb(call.message.chat.id)
-        customer_msg = await DataCartFormer().data_for_customer_about_cart(data.quest, 'Ваш заказ:', data.status_description)
-        personal_msg = await DataCartFormer().data_for_customer_about_cart_for_personal(data.quest, 'Ваш заказ:', data.status_description)
-        await call.message.answer(customer_msg)
-        await bot.send_message(chat_id='-1001558221765', text=personal_msg)
-
-    @dp.message_handler(commands='status')
-    async def status_message(message: types.Message):
-        await message.answer('Bot is working' + emojize(":pizza:"))
-
-    @dp.message_handler(commands='control')
-    async def start_control_dialog(message: types.Message):
-        CommandHandler('20000, 30000, 40900', message.chat.id)
-        data = SelectorDataDb(message.chat.id)
-        keyboard = types.InlineKeyboardMarkup()
-        await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
-        if not data.style_id == 0:
-            keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
-        await message.answer(data.quest, reply_markup=keyboard)
-        await bot.delete_message(message.chat.id, message.message_id)
-
-    @dp.message_handler(commands='заказ')
-    async def start_dialog(message: types.Message):
-        CommandHandler('20000, 30000', message.chat.id)
-        data = SelectorDataDb(message.chat.id)
-        if data.black_list_data:
-            if data.black_list_data == 2:
-                await message.answer("Извините, но вы находитесь в черном списке.\nЗа подробностями обратитесь по телефону")
-                return 0
-        else:
-            CommandHandler('80000,', message.chat.id)
-        CommandHandler('60000, 31000', message.chat.id)
-        keyboard = types.InlineKeyboardMarkup()
-        await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
-        await message.answer(data.quest, reply_markup=keyboard)
-
-    @dp.message_handler(content_types='text')
-    async def handle_text_message(message: types.Message):
-        data = SelectorDataDb(message.chat.id)
-        if data.step_id == 910: await MyBot().check_cart_to_number(message)
-        if data.step_id == 900: await MyBot().check_admin_password(message)
-        if data.step_id == 4: await MyBot().add_number_products(message)
-        if data.step_id == 6: await MyBot().update_customer_name(message)
-        if data.step_id == 7: await MyBot().update_phone_number(message)
-        if data.step_id == 9: await MyBot().update_delivery_or_custom_time_address(message, '40011, 62000')
-        if data.step_id == 10: await MyBot().update_delivery_or_custom_time_address(message, '40011, 63000')
-
-    @dp.callback_query_handler(text='back')
-    async def back_command(call: types.CallbackQuery):
-        CommandHandler('50000,', call.message.chat.id)
-        data = SelectorDataDb(call.message.chat.id)
-        keyboard = types.InlineKeyboardMarkup()
-        await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
-        if not data.style_id == 0:
-            keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
-
-        await call.message.answer(data.quest, reply_markup=keyboard)
-        await bot.delete_message(call.message.chat.id, call.message.message_id)
-
     @dp.callback_query_handler()
-    async def enter_button_command(call: types.CallbackQuery):
-        pre_data = SelectorDataDb(call.message.chat.id)
-        pre_answer = pre_data.select_pre_step_dialog(pre_data.step_id, pre_data.style_id,
-                                                     call.data
-                                                     )
-        CommandHandler(call.data, call.message.chat.id)
-        data = SelectorDataDb(call.message.chat.id)
-        if data.step_id == 912:
-            personal_msg = await DataCartFormer().data_for_customer_about_cart_for_personal(data.quest,
-                                                                                            'Ваш заказ:',
-                                                                                            data.select_status_description(call.message.chat.id,
-                                                                                                                           data.select_tmp_cart_id()))
-            await call.message.answer(personal_msg)
-        else:
-            keyboard = types.InlineKeyboardMarkup()
-            await MyBot().add_standart_dialogs_to_inline_keyboard(data, keyboard)
-            if not data.style_id == 0:
-                keyboard.add(types.InlineKeyboardButton(text='Назад', callback_data='back'))
+    async def inline_button_commands(call: types.CallbackQuery) -> None:
+        """answer to not concrete inline commands"""
+        pre_question = AnswerFactory().pre_question_in_dialog(call)
+        data = AnswerFactory().answer_to_inline_commands(call)
+        btn_customer_answer = AnswerFactory().pre_inline_btn_customer_answer(call)
+        keyboard = types.InlineKeyboardMarkup()
+        KeyboardExtender(keyboard, data.dialogs_list.dialogs_list)
+        msg = await bot.send_message(chat_id=data.chat_id, text=data.question.quest, reply_markup=keyboard)
+        AnswerFactory().update_message_id_in_step_table(msg)
+        await bot.edit_message_text(f"{pre_question.question.quest}\n<u>{btn_customer_answer.question.pre_answer}</u>",
+                                    call.message.chat.id, call.message.message_id, reply_markup='')
+        if data.question.sticker_msg_id != 0:
+            await bot.delete_message(call.message.chat.id, data.question.sticker_msg_id)
+            AnswerFactory().delete_sticker_id_in_step_table(call.message)
+        if data.question.sticker:
+            sticker = await bot.send_sticker(chat_id=data.chat_id, sticker=data.question.sticker)
+            AnswerFactory().update_sticker_id_in_step_table(sticker)
 
-            await call.message.answer(data.quest, reply_markup=keyboard)
-            await bot.edit_message_text(f'<u>{pre_answer}</u>', call.message.chat.id,
-                                        call.message.message_id, reply_markup='')
+class KeyboardExtender:
+    def __init__(self, keyboard, dialog_obj_list: list) -> None:
+        self.keyboard = keyboard
+        self.dialog_obj_list = dialog_obj_list
+        self.extend_keyboard()
 
+    def extend_keyboard(self) -> None:
+        if self.dialog_obj_list:
+            for dialog in self.dialog_obj_list:
+                if dialog.emoji:
+                    self.keyboard.add(types.InlineKeyboardButton(text=dialog.dialog + '  ' + dialog.emoji,
+                                                                 callback_data=dialog.commands))
+                else:
+                    self.keyboard.add(types.InlineKeyboardButton(text=dialog.dialog,
+                                                                 callback_data=dialog.commands))
 
 if __name__ == '__main__':
     cl = MyBot()

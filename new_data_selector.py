@@ -273,8 +273,8 @@ class SelectorDataDb():
                                          conditions)
         return data[0][0]
 
-    def select_tmp_scores(self, chat_id, cart_id) -> int:
-        conditions = f"{self.tmp_sc.split_fields[0]}={chat_id} AND {self.tmp_sc.split_fields[2]}={cart_id}"
+    def select_tmp_scores(self, cart_id) -> int:
+        conditions = f"{self.tmp_sc.split_fields[2]}={cart_id}"
         data = self.tmp_sc.select_in_table(self.tmp_sc.table_name,
                                            self.tmp_sc.split_fields[1],
                                            conditions)
@@ -307,3 +307,38 @@ class SelectorDataDb():
                                              conditions)
         return data[0][0]
 
+    def select_tmp_cart_id_from_admin_table(self):
+        data = self.admin.select_in_table(self.admin.table_name,
+                                          self.admin.split_fields[1])
+        return data[0][0]
+
+    def select_tmp_scores_and_chat_id(self, cart_id) -> int:
+        conditions = f"{self.tmp_sc.split_fields[2]}={cart_id}"
+        data = self.tmp_sc.select_in_table(self.tmp_sc.table_name,
+                                           f"{self.tmp_sc.split_fields[0]},"
+                                           f"{self.tmp_sc.split_fields[1]}",
+                                           conditions)
+        return data[0]
+
+    def select_customer_id(self, chat_id):
+        conditions = f"{self.customer.split_fields[0]}={chat_id}"
+        data = self.customer.select_in_table(self.customer.table_name,
+                                             self.customer.split_fields[0],
+                                             conditions)
+        if data:
+            return data[0][0]
+        else:
+            return None
+
+    def select_data_about_customer_to_personal(self, customer_id):
+        fields = f"id, name, phone, black_list, value, percent"
+        main_table = self.customer.table_name
+        sub_table = self.scores.table_name
+        conditions = f"{self.customer.split_fields[0]}={customer_id} AND {self.scores.split_fields[0]}={customer_id}"
+        data = self.customer.inner_join_in_table(main_table, sub_table, fields, conditions)
+        return data[0]
+
+    def select_tmp_customer_id(self):
+        data = self.admin.select_in_table(self.admin.table_name,
+                                          self.admin.split_fields[2])
+        return data[0][0]

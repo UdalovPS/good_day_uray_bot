@@ -71,6 +71,13 @@ class CommandHandler(SelectorDataDb):
         60 000 - insert new row in tmp_cart_customer_table;
         61 000 - update cart_status;
 
+        90 - is commands for work with administrator;
+        90 000 - update tmp_cart_id;
+        91 000 - update cart_status from administrator menu;
+        92 000 - converte tmp_scores in scores;
+        93 000 - update tmp_user_id;
+        94 000 - change black_list_status;
+        95 000 - change personal discount;
         """
         for command in self.commands:
             if command:
@@ -135,6 +142,18 @@ class CommandHandler(SelectorDataDb):
                     self.__add_new_row_in_tmp_customer_cart_table(self.chat_id, self.message_text)
                 if cod == 61:
                     self.__update_cart_status(self.sub_text, value)
+                if cod == 90:
+                    self.__update_tmp_cart_id(self.message_text)
+                if cod == 91:
+                    self.__update_cart_status(SelectorDataDb(self.message).select_tmp_cart_id_from_admin_table(), value)
+                if cod == 92:
+                    self.__converte_tmp_scores_in_scores(SelectorDataDb(self.message).select_tmp_cart_id_from_admin_table())
+                if cod == 93:
+                    self.__update_tmp_user_id(self.message_text)
+                if cod == 94:
+                    self.__update_black_list_status(SelectorDataDb(self.message).select_tmp_customer_id(), value)
+                if cod == 95:
+                    self.__update_personal_discount(self.sub_text[0], self.sub_text[1])
 
     def __delete_data_from_step_id(self, chat_id) -> None:
         conditions = f'{self.steps.split_fields[0]}={chat_id}'
@@ -350,17 +369,49 @@ class CommandHandler(SelectorDataDb):
         self.steps.update_fields(self.steps.table_name,
                                  field_value, conditions)
 
-    def __delete_garbage_from_db(self, chat_id):
+    def __delete_garbage_from_db(self, chat_id) -> None:
         cart_id = self.__select_max_cart_id(chat_id)
         cart_conditions = f'{self.cart.split_fields[2]}=0 AND {self.cart.split_fields[1]}={chat_id}'
         cart_prod_conditions = f'{self.cart_prod.split_fields[1]}={cart_id} AND {self.cart_prod.split_fields[5]}=0'
         self.cart_prod.delete_data_from_table(self.cart_prod.table_name, cart_prod_conditions)
         self.cart.delete_data_from_table(self.cart.table_name, cart_conditions)
 
-    def __add_new_row_in_tmp_customer_cart_table(self, chat_id, cart_id):
+    def __add_new_row_in_tmp_customer_cart_table(self, chat_id, cart_id) -> None:
         conditions = f"{self.tmp_cart.split_fields[0]}={chat_id}"
         self.tmp_cart.delete_data_from_table(self.tmp_cart.table_name,
                                              conditions)
         self.tmp_cart.insert_data_in_table(self.tmp_cart.table_name,
                                            self.tmp_cart.fields,
                                            f"({chat_id}, {cart_id})")
+
+    def __update_tmp_cart_id(self, new_cart_id) -> None:
+        field_value = f"{self.admin.split_fields[1]}={new_cart_id}"
+        self.admin.update_fields(self.admin.table_name, field_value)
+
+    def __converte_tmp_scores_in_scores(self, cart_id) -> None:
+        db = SelectorDataDb(self.message)
+        chat_id_value = db.select_tmp_scores_and_chat_id(cart_id)
+        chat_id = chat_id_value[0]
+        tmp_scores = chat_id_value[1]
+        personal_scores = db.select_personal_scores(chat_id)
+        conditions = f"{self.scores.split_fields[0]}={chat_id}"
+        field_value = f"{self.scores.split_fields[1]}={personal_scores + tmp_scores}"
+        self.scores.update_fields(self.scores.table_name,
+                                  field_value, conditions)
+
+    def __update_tmp_user_id(self, user_id) -> None:
+        field_value = f"{self.admin.split_fields[2]}={user_id}"
+        self.admin.update_fields(self.admin.table_name,
+                                 field_value)
+
+    def __update_black_list_status(self, user_id, value) -> None:
+        field_value = f"{self.customer.split_fields[3]}={value}"
+        conditions = f"{self.customer.split_fields[0]}={user_id}"
+        self.customer.update_fields(self.customer.table_name,
+                                    field_value, conditions)
+
+    def __update_personal_discount(self, user_id, value) -> None:
+        field_value = f"{self.scores.split_fields[2]}={value}"
+        conditions = f"{self.scores.split_fields[0]}={user_id}"
+        self.scores.update_fields(self.scores.table_name,
+                                  field_value, conditions)

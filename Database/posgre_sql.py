@@ -305,9 +305,10 @@ class AdminTable(DatabasePSQL):
     def __init__(self):
         super(AdminTable, self).__init__()
         self.table_name = 'admin_table'
-        self.fields_with_parameters = 'password     INTEGER,' \
-                                      'tmp_cart_id  INTEGER'  #414141
-        self.fields = 'password, tmp_cart_id'
+        self.fields_with_parameters = 'password     INTEGER, ' \
+                                      'tmp_cart_id  INTEGER,' \
+                                      'tmp_user_id  INTEGER'
+        self.fields = 'password, tmp_cart_id, tmp_user_id'
         self.split_fields = self.fields.split(', ')
 
 class TmpCustomerCartTable(DatabasePSQL):
@@ -321,7 +322,7 @@ class TmpCustomerCartTable(DatabasePSQL):
 
 if __name__ == '__main__':
     pass
-    db = TmpCustomerCartTable()
+    db = AdminTable()
     db.drop_table(db.table_name)
     db.create_table(db.table_name, db.fields_with_parameters)
     # statuses = ((0, 'Формируется'), (1, 'Сформирован'),

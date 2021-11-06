@@ -132,10 +132,9 @@ class UnknowCommands(DataCreator):
         return self.message.chat.id
 
     def build_question(self) -> Question:
-        quest = f"Для того чтобы сделать новый заказ отправьте: <strong>/заказ</strong>\n" \
-                f"Для того чтобы узнать статус заказа отправьте: <strong>/статус</strong>\n" \
-                f"Для того чтобы узнать кол-во баллов на вашем счету отправьте: <strong>/баллы</strong>\n" \
-                f"Для того чтобы отменить заказ отправьте: <strong>/отмена</strong>"
+        quest = f"Для того чтобы сделать новый заказ отправьте: <strong>/заказ</strong> или <strong>/cart</strong>\n" \
+                f"Для того чтобы узнать статус заказа отправьте: <strong>/статус</strong> или <strong>/status</strong>\n" \
+                f"Для того чтобы узнать кол-во баллов на вашем счету отправьте: <strong>/баллы</strong> или <strong>/points</strong>\n"
         return Question(quest)
 
     def build_dialog_list(self) -> DialogsList:
@@ -164,7 +163,7 @@ class CartNoFoundMessage(DataCreator):
         return self.message.chat.id
 
     def build_question(self) -> Question:
-        quest = f"Заказ по данному номеру не найден"
+        quest = f"Данные не найдены"
         return Question(quest)
 
     def build_dialog_list(self) -> DialogsList:
@@ -538,8 +537,7 @@ class FinalDataAboutCartAfterEnd(DataCreator):
         final_data = DataCartFormer().data_for_customer_about_cart([customer_cart_data_db, list_data_db],
                                                                    'Выбрано:', status=cart_status)
         cart_id = db.select_last_cart_id(self.message.chat.id)
-        tmp_scores = db.select_tmp_scores(self.message.chat.id,
-                                          cart_id)
+        tmp_scores = db.select_tmp_scores(cart_id)
         price_after_scores = db.select_price_after_scores()
         data = final_data + f'Итоговая сумма: {price_after_scores} рублей\n'
         data += f"После оплаты заказа вам будет начислены баллы: <strong>{tmp_scores}</strong>"
@@ -616,6 +614,7 @@ class CartDataForStatus(DataCreator):
         list_data_db = db.select_intermediate_data_about_cart(self.cart_id)
         customer_cart_data_db = db.select_data_about_customer_and_about_cart(self.cart_id)
         cart_status = db.select_status_description(customer_cart_data_db[7])
+        self.status_id = customer_cart_data_db[7]
         final_data = DataCartFormer().data_for_customer_about_cart([customer_cart_data_db, list_data_db],
                                                                    'Выбрано:', status=cart_status)
         price_after_scores = db.select_price_after_scores(self.cart_id)
@@ -624,11 +623,15 @@ class CartDataForStatus(DataCreator):
         return Question(data, sticker_id=stiker_id)
 
     def build_dialog_list(self) -> DialogsList:
-        data = SelectorDataDb(self.message)
-        data_dialogs = data.select_dialog_from_db()
-        style_id = data.select_style_id_from_db()
-        dialogs = DialogsList()
-        self.add_objects_in_dialog_list(dialogs, data_dialogs)
+        if self.status_id in (5, 10, 11):
+            data = ()
+            dialogs = DialogsList()
+            self.add_objects_in_dialog_list(dialogs, data)
+        else:
+            data = SelectorDataDb(self.message)
+            data_dialogs = data.select_dialog_from_db()
+            dialogs = DialogsList()
+            self.add_objects_in_dialog_list(dialogs, data_dialogs)
         return dialogs
 
     def add_objects_in_dialog_list(self, obj, dialogs) -> None:
@@ -676,6 +679,79 @@ class CheckCustomerPoints(DataCreator):
         return DataForMessage(chat_id, quest, dialogs)
 
 
+class PasswordNotCorrectMessage(DataCreator):
+    def __init__(self, message):
+        self.message = message
+
+    def build_chat_id(self) -> int:
+        return self.message.chat.id
+
+    def build_question(self) -> Question:
+        quest = f"Введен неверный пароль"
+        return Question(quest)
+
+    def build_dialog_list(self) -> DialogsList:
+        data = ()
+        dialogs = DialogsList()
+        self.add_objects_in_dialog_list(dialogs, data)
+        return dialogs
+
+    def add_objects_in_dialog_list(self, obj, dialogs) -> None:
+        for dialog in dialogs:
+            data = Dialogs(*dialog)
+            obj.add_obj_in_list(data)
+
+    def create_data_for_message(self):
+        chat_id = self.build_chat_id()
+        quest = self.build_question()
+        dialogs = self.build_dialog_list()
+        return DataForMessage(chat_id, quest, dialogs)
+
+
+class DataAboutCustomerToPersonal(DataCreator):
+    def __init__(self, message, customer_id):
+        self.message = message
+        self.customer_id = customer_id
+
+    def build_chat_id(self) -> int:
+        return self.message.chat.id
+
+    def build_question(self) -> Question:
+        db = SelectorDataDb(self.message)
+        customer_data = db.select_data_about_customer_to_personal(self.customer_id)
+        black_id = customer_data[3]
+        if black_id == 1:
+            black_status = 'Нет, не находится'
+        else:
+            black_status = 'Да, находится'
+        data = f"Идентификационный номер: <strong>{customer_data[0]}</strong>\n" \
+               f"Имя: <strong>{customer_data[1]}</strong>\n" \
+               f"Номер телефона: <strong>{customer_data[2]}</strong>\n" \
+               f"Находится в черном списке: <strong>{black_status}</strong>\n" \
+               f"Кол-во баллов на счету: <strong>{customer_data[4]}</strong>\n" \
+               f"Персональная скидка: <strong>{customer_data[5]}%</strong>"
+        stiker_id = db.select_sticker_id_from_db()
+        return Question(data, sticker_id=stiker_id)
+
+    def build_dialog_list(self) -> DialogsList:
+        data = SelectorDataDb(self.message)
+        data_dialogs = data.select_dialog_from_db()
+        dialogs = DialogsList()
+        self.add_objects_in_dialog_list(dialogs, data_dialogs)
+        return dialogs
+
+    def add_objects_in_dialog_list(self, obj, dialogs) -> None:
+        for dialog in dialogs:
+            data = Dialogs(*dialog)
+            obj.add_obj_in_list(data)
+
+    def create_data_for_message(self):
+        chat_id = self.build_chat_id()
+        quest = self.build_question()
+        dialogs = self.build_dialog_list()
+        return DataForMessage(chat_id, quest, dialogs)
+
+
 class AnswerFactory:
     def answer_to_start_command(self, message):
         """ /start command"""
@@ -695,16 +771,12 @@ class AnswerFactory:
         """answer to not concrete inline commands
             :return - DataForMessage object"""
         CommandHandler(call.data, call.message)
-        cod_list = call.data.split(', ')
-        if (int(cod_list[0][0:5])) % 1000 == 12:
+        step_id = SelectorDataDb(call.message).select_step_id_from_db()
+        if step_id == 12:
             data = FinalDataAboutCart(call.message).create_data_for_message()
             return data
-
-        if len(cod_list) > 1:
-            if (int(cod_list[1]) // 1000) == 20:
-                data = ProductDescriptionMessage(call.message).create_data_for_message()
-            else:
-                data = StandartDataForMessage(call.message).create_data_for_message()
+        elif step_id == 2:
+            data = ProductDescriptionMessage(call.message).create_data_for_message()
         else:
             data = StandartDataForMessage(call.message).create_data_for_message()
         return data
@@ -715,6 +787,8 @@ class AnswerFactory:
         step_id = SelectorDataDb(call.message).select_step_id_from_db()
         if step_id == 5:
             data = IntermediateDataCart(call.message).create_data_for_message()
+        elif step_id == 2:
+            data = ProductDescriptionMessage(call.message).create_data_for_message()
         else:
             data = StandartDataForMessage(call.message).create_data_for_message()
         return data
@@ -742,7 +816,6 @@ class AnswerFactory:
         """This method delete previous sticker_message_id from step_table"""
         CommandHandler('16000,', message)
 
-
     def choice_answer_to_text_message(self, message):
         """:return - answer to text message"""
         step_id = SelectorDataDb(message).select_step_id_from_db()
@@ -758,6 +831,14 @@ class AnswerFactory:
             return self.answer_to_customer_time_message(message)
         elif step_id == 500:
             return self.answer_to_status_number_from_customer(message)
+        elif step_id == 900:
+            return self.check_password(message)
+        elif step_id == 910:
+            return self.answer_to_status_number_from_personal(message)
+        elif step_id == 940:
+            return self.check_customer_to_number(message)
+        elif step_id == 943:
+            return self.change_personal_discount(message)
         else:
             return UnknowCommands(message).create_data_for_message()
 
@@ -842,6 +923,58 @@ class AnswerFactory:
     def check_customer_points(self, message):
         data = CheckCustomerPoints(message).create_data_for_message()
         return data
+
+    def password_message(self, message):
+        CommandHandler('10000, 11000, 13900', message)
+        data = StandartDataForMessage(message).create_data_for_message()
+        return data
+
+    def check_password(self, message):
+        try:
+            input_password = int(message.text)
+        except ValueError:
+            data = PasswordNotCorrectMessage(message).create_data_for_message()
+            return data
+        admin_password = SelectorDataDb(message).select_admin_password()
+        if input_password == admin_password:
+            CommandHandler('13901,', message)
+            data = StandartDataForMessage(message).create_data_for_message()
+        else:
+            data = PasswordNotCorrectMessage(message).create_data_for_message()
+        return data
+
+    def answer_to_status_number_from_personal(self, message):
+        db = SelectorDataDb(message)
+        cart_number = db.select_cart_id_to_number(message.text)
+        if cart_number:
+            CommandHandler('90000, 13920', message)
+            data = CartDataForStatus(message, cart_number).create_data_for_message()
+        else:
+            data = CartNoFoundMessage(message).create_data_for_message()
+        return data
+
+    def check_customer_to_number(self, message):
+        db = SelectorDataDb(message)
+        customer_id = db.select_customer_id(message.text)
+        if customer_id:
+            CommandHandler('13941, 93000', message)
+            data = DataAboutCustomerToPersonal(message, customer_id).create_data_for_message()
+        else:
+            data = CartNoFoundMessage(message).create_data_for_message()
+        return data
+
+    def change_personal_discount(self, message):
+        try:
+            new_dicount = int(message.text)
+            if new_dicount > 100:
+                raise ValueError
+            customer_id = SelectorDataDb(message).select_tmp_customer_id()
+            CommandHandler('95000, 13942', message, [customer_id, new_dicount])
+            data = StandartDataForMessage(message).create_data_for_message()
+            return data
+        except ValueError:
+            raise ValueError
+
 
 if __name__ == '__main__':
     pass

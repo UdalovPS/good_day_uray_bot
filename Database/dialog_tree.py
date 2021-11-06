@@ -114,7 +114,7 @@ class Dialogs(DialogTree):
                              'CAACAgIAAxkBAAEDM6thgCobIUrcx_D28hXGoFP6E3uqZQACfgIAAladvQpBYnRfUWys5CEE',
                              (('Соус чесночный-антивампирный', '13004, 21001', "\U0001F9C4"),
                               ('Соус Сеньор-помидор', '13004, 21002', "\U0001F345"),
-                              ('С турецкий(острый)-АЩЩЩ', '13004, 21003', "\U0001F525"),
+                              ('Соус турецкий(острый)-АЩЩЩ', '13004, 21003', "\U0001F525"),
                               ('Кечунез!!!', '13004, 21004', "\U0001F345-\U0001F95A"))
                              )
         self.step_four_1 = (4, 1, 'Сколько? Введи нужное количество', 3, None)
@@ -176,33 +176,40 @@ class Dialogs(DialogTree):
 class AdminDialogs(DialogTree):
     def __init__(self):
         super(AdminDialogs, self).__init__()
-        self.start_admin_step = (900, 0, 'Введите код доступа', 0)
-        self.first_admin_msg = (901, 0, 'Доступ подтвержден. Выберите команду', 900,
-                                (('Управление заказами', '40910,'),
-                                ('Управление черным списком', '40920,'),
-                                ('Управление скидками', '40930,'))
+        self.start_admin_step = (900, 0, 'Введите код доступа', 0, None)
+        self.first_admin_msg = (901, 0, 'Доступ подтвержден. Выберите команду', 900, None,
+                                (('Управление заказами', '13910,'),
+                                ('Управление клиентами', '13940,'))
                                 )
-        self.choice_cart_status = (910, 0, 'Введите номер заказа', 901)
-        self.update_cart_status = (911, 0, '', 910,
-                                   (('Заказ принят', '40912, 93002'),
-                                    ('Заказ готов к выдаче', '40912, 93003'),
-                                    ('Заказ доставляется', '40912, 93004'),
-                                    ('Заказ завершен', '40912, 93005'),
-                                    ('Заказ отменен', '40912, 93010'))
+        self.choice_cart_status = (910, 0, 'Введите номер заказа', 901, None)
+        self.update_cart_status = (920, 0, '', 910, None,
+                                   (('Заказ принят', '13930, 91002'),
+                                    ('Заказ готов к выдаче', '13930, 91003'),
+                                    ('Заказ доставляется', '13930, 91004'),
+                                    ('Заказ завершен', '13930, 91005, 92000'),
+                                    ('Заказ отменен', '13930, 91011'))
                                    )
-        self.state_is_changed = (912, 0, 'Статус заказа изменен', 911)
+        self.state_is_changed = (930, 0, 'Статус заказа изменен', 920, None)
+        self.choice_customer_cmd = (940, 0, 'Введите идентификационный номер клиента', 901, None)
+        self.change_customer_data = (941, 0, '', 940, None,
+                                     (('Добавить в черный список', '13942, 94002'),
+                                      ('Удалить из черного списка', '13942, 94001'),
+                                      ('Изменить персональную скидку', '13943,'))
+                                     )
+        self.state_personal_data = (942, 0, 'Данные пользователя изменены', 941, None)
+        self.personal_scores_data = (943, 0, 'Введите новую персональную скидку', 941, None)
 
 if __name__ == '__main__':
     s0 = Dialogs()
     # s0 = AdminDialogs()
-    data = s0.step_status
+    data = s0.step_three_2
     # if data[4] == None:
     #     s0.insert_question(data[0], data[1], data[2], data[3])
     # else:
     #     s0.insert_question_with_sticker(data[0], data[1], data[2], data[3], data[4])
-    # for dialog in data[5]:
-    #     if len(dialog) > 2:
-    #         s0.insert_dialogs_with_emoji(data[0], data[1], dialog)
-    #     else:
-    #         s0.insert_dialog(data[0], data[1], dialog)
+    for dialog in data[5]:
+        if len(dialog) > 2:
+            s0.insert_dialogs_with_emoji(data[0], data[1], dialog)
+        else:
+            s0.insert_dialog(data[0], data[1], dialog)
     pass
