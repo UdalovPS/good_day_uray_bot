@@ -104,6 +104,7 @@ class MyBot:
             sticker = await bot.send_sticker(chat_id=data.chat_id, sticker=data.question.sticker)
             AnswerFactory().update_sticker_id_in_step_table(sticker)
 
+
 class KeyboardExtender:
     def __init__(self, keyboard, dialog_obj_list: list) -> None:
         self.keyboard = keyboard

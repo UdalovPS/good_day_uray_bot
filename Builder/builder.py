@@ -102,7 +102,7 @@ class BlackListData(DataCreator):
         return self.message.chat.id
 
     def build_question(self) -> Question:
-        quest = f"Извините, но вы находитесь в черном списке. За подробностями позвоните по телефону\n" \
+        quest = f"Извините, но вы находитесь в черном списке. За подробностями позвоните по телефону <strong>89088964747</strong>\n" \
                 f"Ваш уникальный номер: <strong>{self.message.chat.id}</strong>"
         return Question(quest)
 
@@ -899,8 +899,12 @@ class AnswerFactory:
         return SelectorDataDb(message).select_message_id_from_step_table()
 
     def answer_to_status_message(self, message):
-        CommandHandler('13500, 12000', message)
-        data = StandartDataForMessage(message).create_data_for_message()
+        black_list = SelectorDataDb(message).check_black_list_about_customer()
+        if black_list == 2:
+            data = BlackListData(message).create_data_for_message()
+        else:
+            CommandHandler('13500, 12000', message)
+            data = StandartDataForMessage(message).create_data_for_message()
         return data
 
     def answer_to_status_number_from_customer(self, message):
