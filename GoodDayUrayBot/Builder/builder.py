@@ -76,7 +76,6 @@ class StandartDataForMessage(DataCreator):
         dialogs = DialogsList()
         self.add_objects_in_dialog_list(dialogs, data_dialogs)
         if style_id == 0:
-        # if style_id == 0 or step_id == 5 or step_id == 6 or step_id == 7 or step_id == 9 or step_id == 10:
             pass
         else:
             self.add_objects_in_dialog_list(dialogs, [('Назад', 'back', '\U0001F519')])
@@ -132,9 +131,11 @@ class UnknowCommands(DataCreator):
         return self.message.chat.id
 
     def build_question(self) -> Question:
-        quest = f"Для того чтобы сделать новый заказ отправьте: <strong>/заказ</strong> или <strong>/cart</strong>\n" \
-                f"Для того чтобы узнать статус заказа отправьте: <strong>/статус</strong> или <strong>/status</strong>\n" \
-                f"Для того чтобы узнать кол-во баллов на вашем счету отправьте: <strong>/баллы</strong> или <strong>/points</strong>\n"
+        quest = f"Для того чтобы сделать новый заказ отправьте: \n<strong>/заказ</strong> или <strong>/cart</strong>\n" \
+                f".............................................\n"\
+                f"Для того чтобы узнать статус заказа или отменить заказ отправьте: \n<strong>/статус</strong> или <strong>/status</strong>\n" \
+                f".............................................\n" \
+                f"Для того чтобы узнать кол-во баллов на вашем счету отправьте: \n<strong>/баллы</strong> или <strong>/points</strong>\n"
         return Question(quest)
 
     def build_dialog_list(self) -> DialogsList:
@@ -567,7 +568,7 @@ class FinalDataAboutCartToPersonal(DataCreator):
         self.message = message
 
     def build_chat_id(self):
-        personal_channel = '-1001558221765'
+        personal_channel = 'administration channel chat id'
         return personal_channel
 
     def build_question(self) -> Question:
@@ -915,6 +916,7 @@ class AnswerFactory:
             data = CartDataForStatus(message, cart_number).create_data_for_message()
         else:
             data = CartNoFoundMessage(message).create_data_for_message()
+            CommandHandler('13000,', message)
         return data
 
     def cancel_cart_from_customer(self, message):

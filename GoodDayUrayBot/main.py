@@ -10,6 +10,15 @@ logging.basicConfig(level=logging.INFO)
 
 
 class MyBot:
+    @dp.message_handler(commands='start')
+    async def print_start_message(message: types.Message):
+        msg_text = f"Для того чтобы сделать новый заказ отправьте: \n<strong>/заказ</strong> или <strong>/cart</strong>\n" \
+            f".............................................\n"\
+            f"Для того чтобы узнать статус заказа или отменить заказ отправьте: \n<strong>/статус</strong> или <strong>/status</strong>\n" \
+            f".............................................\n" \
+            f"Для того чтобы узнать кол-во баллов на вашем счету отправьте: \n<strong>/баллы</strong> или <strong>/points</strong>\n"
+        await message.answer(msg_text)
+
     @dp.message_handler(commands=['заказ', 'cart'])
     async def start_message(message: types.Message) -> None:
         data = AnswerFactory().answer_to_start_command(message)
